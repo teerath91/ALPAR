@@ -29,11 +29,15 @@ package org.autorefactor.refactoring.rules;
 
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.MethodInvocation;
+import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.internal.corext.dom.ASTNodes;
 
 import static org.autorefactor.refactoring.ASTHelper.*;
 import static org.eclipse.jdt.core.dom.ASTNode.*;
+
+import org.autorefactor.refactoring.ASTBuilder;
+import org.autorefactor.refactoring.Refactorings;
 
 /** See {@link #getDescription()} method. */
 public class WakeLockRefactoring extends AbstractRefactoringRule {
@@ -54,26 +58,25 @@ public class WakeLockRefactoring extends AbstractRefactoringRule {
 
 	@Override
     public boolean visit(MethodInvocation node) {
-		if(isMethod(node, "android.os.PowerManager.WakeLock", "release")){
-			// check whether it is being called in onDestroy
-			MethodDeclaration enclosingMethod = (MethodDeclaration) ASTNodes.getParent(node, ASTNode.METHOD_DECLARATION);
-			String enclosingMethodName = enclosingMethod.getName().getFullyQualifiedName();
-			if("android.app.Activity.onUpdate".equals(enclosingMethodName)){
-				System.out.println("Good");
-			}
-			else if("android.app.Activity.onDestroy".equals(enclosingMethodName)){
-				System.out.println("Issue");
-				ctx.getRefactorings().set(node, MethodInvocation.NAME_PROPERTY, "estaAFuncionar");
-			}
-			else{
-				System.out.println("Found nothing:"
-						+ enclosingMethodName);
-			}
-			
-			
-			// put it on onPause
-			return DO_NOT_VISIT_SUBTREE;
-		}
+        if(isMethod(node, "android.os.PowerManager.WakeLock", "release")){
+            // check whether it is being called in onDestroy
+            final Refactorings r = this.ctx.getRefactorings();
+            final ASTBuilder b = this.ctx.getASTBuilder();
+            MethodDeclaration enclosingMethod = (MethodDeclaration) ASTNodes.getParent(node, ASTNode.METHOD_DECLARATION);
+            if(isMethod(enclosingMethod.resolveBinding(), "android.app.Activity", "onDestroy")){
+            	TypeDeclaration typeDecl= (TypeDeclaration)ASTNodes.getParent(enclosingMethod, TypeDeclaration.class);
+            	MethodDeclaration[] methods = typeDecl.getMethods();
+				for(MethodDeclaration method : methods ) {
+            	    if("onPause".equals(method.resolveBinding().getName())){
+            	        r.insertAfter(b.copy(node), method.getBody());
+//            	        r.remove(node);
+            	        break;
+            	    }
+            	}
+            }
+            // put it on onPause
+            return DO_NOT_VISIT_SUBTREE;
+        }
         return VISIT_SUBTREE;
     }
 }

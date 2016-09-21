@@ -113,6 +113,7 @@ public final class AllRefactoringRules {
                 new TestNGAssertRefactoring(),
                 new ReplaceQualifiedNamesBySimpleNamesRefactoring(),
                 new RemoveEmptyLinesRefactoring(),
+                new WakeLockRefactoring(),
                 new SwitchRefactoring());
     }
 
