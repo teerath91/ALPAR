@@ -57,7 +57,7 @@ public class WakeLockRefactoring extends AbstractRefactoringRule {
 		return "WakeLockRefactoring";
 	}
 
-	@Override
+    @Override
     public boolean visit(MethodInvocation node) {
         if(isMethod(node, "android.os.PowerManager.WakeLock", "release")){
             // check whether it is being called in onDestroy
@@ -65,32 +65,19 @@ public class WakeLockRefactoring extends AbstractRefactoringRule {
             final ASTBuilder b = this.ctx.getASTBuilder();
             MethodDeclaration enclosingMethod = (MethodDeclaration) ASTNodes.getParent(node, ASTNode.METHOD_DECLARATION);
             if(isMethod(enclosingMethod.resolveBinding(), "android.app.Activity", "onDestroy")){
-            	MethodDeclaration method;
-            	method = enclosingMethod;
-            	r.insertAt(
-    	    			b.move(node.getParent()),
-    	    			method.getBody().statements().size(),
-    	    			Block.STATEMENTS_PROPERTY,
-    	    			method.getBody()
-    	    	);
-            	
-            	
-//            	TypeDeclaration typeDecl= (TypeDeclaration)ASTNodes.getParent(enclosingMethod, TypeDeclaration.class);
-//            	MethodDeclaration[] methods = typeDecl.getMethods();
-//				for(MethodDeclaration method : methods ) {
-//            	    if("onPause".equals(method.resolveBinding().getName())){
-//            	    	r.insertAt(
-//            	    			b.copy(node.getParent()),
-//            	    			method.getBody().statements().size(),
-//            	    			Block.STATEMENTS_PROPERTY,
-//            	    			method.getBody()
-//            	    	);
-//            	    	return DO_NOT_VISIT_SUBTREE;
-//            	    }
-//            	}
+                TypeDeclaration typeDecl= (TypeDeclaration)ASTNodes.getParent(enclosingMethod, TypeDeclaration.class);
+                MethodDeclaration[] methods = typeDecl.getMethods();
+                for(MethodDeclaration method : methods ) {
+                    if("onPause".equals(method.resolveBinding().getName())
+                            && node.getParent().getNodeType() == ASTNode.EXPRESSION_STATEMENT) {
+                        r.insertAt(b.move(node.getParent()),
+                                method.getBody().statements().size(),
+                                Block.STATEMENTS_PROPERTY,
+                                method.getBody());
+                        return DO_NOT_VISIT_SUBTREE;
+                    }
+                }
             }
-            // put it on onPause
-            return DO_NOT_VISIT_SUBTREE;
         }
         return VISIT_SUBTREE;
     }
