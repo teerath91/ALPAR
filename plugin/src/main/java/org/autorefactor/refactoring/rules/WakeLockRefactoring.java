@@ -65,19 +65,29 @@ public class WakeLockRefactoring extends AbstractRefactoringRule {
             final ASTBuilder b = this.ctx.getASTBuilder();
             MethodDeclaration enclosingMethod = (MethodDeclaration) ASTNodes.getParent(node, ASTNode.METHOD_DECLARATION);
             if(isMethod(enclosingMethod.resolveBinding(), "android.app.Activity", "onDestroy")){
-            	TypeDeclaration typeDecl= (TypeDeclaration)ASTNodes.getParent(enclosingMethod, TypeDeclaration.class);
-            	MethodDeclaration[] methods = typeDecl.getMethods();
-				for(MethodDeclaration method : methods ) {
-            	    if("onPause".equals(method.resolveBinding().getName())){
-            	    	r.insertAt(
-            	    			b.move(node.getParent()),
-            	    			method.getBody().statements().size(),
-            	    			Block.STATEMENTS_PROPERTY,
-            	    			method.getBody()
-            	    	);
-            	        break;
-            	    }
-            	}
+            	MethodDeclaration method;
+            	method = enclosingMethod;
+            	r.insertAt(
+    	    			b.move(node.getParent()),
+    	    			method.getBody().statements().size(),
+    	    			Block.STATEMENTS_PROPERTY,
+    	    			method.getBody()
+    	    	);
+            	
+            	
+//            	TypeDeclaration typeDecl= (TypeDeclaration)ASTNodes.getParent(enclosingMethod, TypeDeclaration.class);
+//            	MethodDeclaration[] methods = typeDecl.getMethods();
+//				for(MethodDeclaration method : methods ) {
+//            	    if("onPause".equals(method.resolveBinding().getName())){
+//            	    	r.insertAt(
+//            	    			b.copy(node.getParent()),
+//            	    			method.getBody().statements().size(),
+//            	    			Block.STATEMENTS_PROPERTY,
+//            	    			method.getBody()
+//            	    	);
+//            	    	return DO_NOT_VISIT_SUBTREE;
+//            	    }
+//            	}
             }
             // put it on onPause
             return DO_NOT_VISIT_SUBTREE;
