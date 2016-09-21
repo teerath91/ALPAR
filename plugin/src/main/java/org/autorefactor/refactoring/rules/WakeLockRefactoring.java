@@ -29,13 +29,18 @@ package org.autorefactor.refactoring.rules;
 
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.Block;
+import org.eclipse.jdt.core.dom.BodyDeclaration;
+import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.MethodInvocation;
+import org.eclipse.jdt.core.dom.Modifier;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.internal.corext.dom.ASTNodes;
 
 import static org.autorefactor.refactoring.ASTHelper.*;
 import static org.eclipse.jdt.core.dom.ASTNode.*;
+
+import java.util.List;
 
 import org.autorefactor.refactoring.ASTBuilder;
 import org.autorefactor.refactoring.Refactorings;
@@ -65,11 +70,16 @@ public class WakeLockRefactoring extends AbstractRefactoringRule {
             final ASTBuilder b = this.ctx.getASTBuilder();
             MethodDeclaration enclosingMethod = (MethodDeclaration) ASTNodes.getParent(node, ASTNode.METHOD_DECLARATION);
             if(isMethod(enclosingMethod.resolveBinding(), "android.app.Activity", "onDestroy")){
-                TypeDeclaration typeDecl= (TypeDeclaration)ASTNodes.getParent(enclosingMethod, TypeDeclaration.class);
-                MethodDeclaration[] methods = typeDecl.getMethods();
+                TypeDeclaration typeDeclaration= (TypeDeclaration)ASTNodes.getParent(enclosingMethod, TypeDeclaration.class);
+                MethodDeclaration[] methods = typeDeclaration.getMethods();
+                
                 for(MethodDeclaration method : methods ) {
-                    if("onPause".equals(method.resolveBinding().getName())
-                            && node.getParent().getNodeType() == ASTNode.EXPRESSION_STATEMENT) {
+                	IMethodBinding methodBinding = method.resolveBinding();
+                    if(
+                    	methodBinding != null
+                    	&& "onPause".equals(methodBinding.getName())
+                    	&& node.getParent().getNodeType() == ASTNode.EXPRESSION_STATEMENT
+                    ){
                         r.insertAt(b.move(node.getParent()),
                                 method.getBody().statements().size(),
                                 Block.STATEMENTS_PROPERTY,
@@ -77,6 +87,23 @@ public class WakeLockRefactoring extends AbstractRefactoringRule {
                         return DO_NOT_VISIT_SUBTREE;
                     }
                 }
+                /* If it reaches this part of the code, it
+                 * means it did not find onPause method.
+                 */
+                MethodDeclaration onUpdateDeclaration = b.getAST().newMethodDeclaration();
+                onUpdateDeclaration.setName(b.simpleName("onPause"));
+				onUpdateDeclaration.setBody(b.block());
+				onUpdateDeclaration.modifiers().add(Modifier.PROTECTED);
+//				List<BodyDeclaration> bodyDeclarations=typeDeclaration.bodyDeclarations();
+//				bodyDeclarations.add(onUpdateDeclaration); // did not work
+				r.insertAfter(onUpdateDeclaration, enclosingMethod);
+//                r.insertAt(
+//                		onUpdateDeclaration,
+//                		typeDeclaration.bodyDeclarations().size(),
+//                		typeDeclaration.getBodyDeclarationsProperty(),
+//                		typeDeclaration
+//                );
+                return DO_NOT_VISIT_SUBTREE;
             }
         }
         return VISIT_SUBTREE;
