@@ -28,6 +28,7 @@
 package org.autorefactor.refactoring.rules;
 
 import org.eclipse.jdt.core.dom.ASTNode;
+import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
@@ -68,8 +69,12 @@ public class WakeLockRefactoring extends AbstractRefactoringRule {
             	MethodDeclaration[] methods = typeDecl.getMethods();
 				for(MethodDeclaration method : methods ) {
             	    if("onPause".equals(method.resolveBinding().getName())){
-            	        r.insertAfter(b.copy(node), method.getBody());
-//            	        r.remove(node);
+            	    	r.insertAt(
+            	    			b.move(node.getParent()),
+            	    			method.getBody().statements().size(),
+            	    			Block.STATEMENTS_PROPERTY,
+            	    			method.getBody()
+            	    	);
             	        break;
             	    }
             	}
