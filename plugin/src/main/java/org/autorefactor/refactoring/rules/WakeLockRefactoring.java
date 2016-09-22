@@ -28,11 +28,14 @@
 package org.autorefactor.refactoring.rules;
 
 import org.eclipse.jdt.core.dom.ASTNode;
+import org.eclipse.jdt.core.dom.Annotation;
 import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.BodyDeclaration;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.Modifier;
+import org.eclipse.jdt.core.dom.Modifier.ModifierKeyword;
+import org.eclipse.jdt.core.dom.NormalAnnotation;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.internal.corext.dom.ASTNodes;
@@ -90,20 +93,20 @@ public class WakeLockRefactoring extends AbstractRefactoringRule {
                 /* If it reaches this part of the code, it
                  * means it did not find onPause method.
                  */
-                MethodDeclaration onUpdateDeclaration = b.getAST().newMethodDeclaration();
-                onUpdateDeclaration.setName(b.simpleName("onPause"));
-				onUpdateDeclaration.setBody(b.block());
-				onUpdateDeclaration.modifiers().add(Modifier.PROTECTED);
-//				List<BodyDeclaration> bodyDeclarations=typeDeclaration.bodyDeclarations();
-//				bodyDeclarations.add(onUpdateDeclaration); // did not work
-				r.insertAfter(onUpdateDeclaration, enclosingMethod);
-//                r.insertAt(
-//                		onUpdateDeclaration,
-//                		typeDeclaration.bodyDeclarations().size(),
-//                		typeDeclaration.getBodyDeclarationsProperty(),
-//                		typeDeclaration
-//                );
+                MethodDeclaration onPauseDeclaration = b.getAST().newMethodDeclaration();
+                onPauseDeclaration.setName(b.simpleName("onPause"));
+				onPauseDeclaration.setBody(b.block());
+				//
+				Modifier modifier = b.getAST().newModifier(ModifierKeyword.PROTECTED_KEYWORD);
+				onPauseDeclaration.modifiers().add(modifier);
+				//
+				NormalAnnotation annotation = b.getAST().newNormalAnnotation();
+				annotation.setTypeName(b.name("Override"));
+//				r.insertBefore(annotation,onPauseDeclaration);
+				// add onPause declaration to the Activity
+				r.insertAfter(onPauseDeclaration, enclosingMethod);				
                 return DO_NOT_VISIT_SUBTREE;
+                
             }
         }
         return VISIT_SUBTREE;
