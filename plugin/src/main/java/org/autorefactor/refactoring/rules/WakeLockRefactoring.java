@@ -31,12 +31,16 @@ import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.Annotation;
 import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.BodyDeclaration;
+import org.eclipse.jdt.core.dom.ExpressionStatement;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.Modifier;
 import org.eclipse.jdt.core.dom.Modifier.ModifierKeyword;
 import org.eclipse.jdt.core.dom.NormalAnnotation;
+import org.eclipse.jdt.core.dom.Statement;
+import org.eclipse.jdt.core.dom.SuperMethodInvocation;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
+import org.eclipse.jdt.core.dom.rewrite.ASTRewrite;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.internal.corext.dom.ASTNodes;
 
@@ -95,7 +99,6 @@ public class WakeLockRefactoring extends AbstractRefactoringRule {
                  */
                 MethodDeclaration onPauseDeclaration = b.getAST().newMethodDeclaration();
                 onPauseDeclaration.setName(b.simpleName("onPause"));
-				onPauseDeclaration.setBody(b.block());
 				//
 				NormalAnnotation annotation = b.getAST().newNormalAnnotation();
 				annotation.setTypeName(b.name("Override"));
@@ -103,6 +106,13 @@ public class WakeLockRefactoring extends AbstractRefactoringRule {
 //
 				Modifier protectedModifier = b.getAST().newModifier(ModifierKeyword.PROTECTED_KEYWORD);
 				onPauseDeclaration.modifiers().add(protectedModifier);
+				//
+				SuperMethodInvocation superMethodInvocation = b.getAST().newSuperMethodInvocation();
+				superMethodInvocation.setName(b.simpleName("onPause"));
+				
+				//
+				ASTRewrite rewriter = ASTRewrite.create(b.getAST());
+				onPauseDeclaration.setBody(b.block(b.newlinePlaceholder(),b.getAST().newExpressionStatement(superMethodInvocation), b.newlinePlaceholder()));
 				
 				// add onPause declaration to the Activity
 				r.insertAfter(onPauseDeclaration, enclosingMethod);				

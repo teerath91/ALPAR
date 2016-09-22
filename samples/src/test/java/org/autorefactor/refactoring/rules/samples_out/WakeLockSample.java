@@ -44,16 +44,15 @@ public class WakeLockSample {
 			wl.acquire();
 		}
 
-		@Override() public void onDestroy(){
+		@Override
+		public void onDestroy(){
 			super.onDestroy();
 		}
-		
-		@Override
-		protected void onPause() {
-			super.onPause();
-			wl.release();
+
+		@Override() protected void onPause(){
+		super.onPause();
+		wl.release();
 		}
-		
 	}
 }
 

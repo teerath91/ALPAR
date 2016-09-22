@@ -857,4 +857,13 @@ public class ASTBuilder {
             return expr;
         }
     }
+    
+    /**
+     * Builds a new {@link Statement} instance which is basically a newline.
+     *
+     * @return a newline statement
+     */
+    public Statement newlinePlaceholder() {
+        return (Statement) this.refactorings.getRewrite().createStringPlaceholder("\n", ASTNode.EMPTY_STATEMENT);
+    }
 }
