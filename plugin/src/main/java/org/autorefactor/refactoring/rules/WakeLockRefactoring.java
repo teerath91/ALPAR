@@ -71,55 +71,55 @@ public class WakeLockRefactoring extends AbstractRefactoringRule {
 
     @Override
     public boolean visit(MethodInvocation node) {
-        if(isMethod(node, "android.os.PowerManager.WakeLock", "release")){
-            // check whether it is being called in onDestroy
-            final Refactorings r = this.ctx.getRefactorings();
-            final ASTBuilder b = this.ctx.getASTBuilder();
-            MethodDeclaration enclosingMethod = (MethodDeclaration) ASTNodes.getParent(node, ASTNode.METHOD_DECLARATION);
-            if(isMethod(enclosingMethod.resolveBinding(), "android.app.Activity", "onDestroy")){
-                TypeDeclaration typeDeclaration= (TypeDeclaration)ASTNodes.getParent(enclosingMethod, TypeDeclaration.class);
-                MethodDeclaration[] methods = typeDeclaration.getMethods();
-                
-                for(MethodDeclaration method : methods ) {
-                	IMethodBinding methodBinding = method.resolveBinding();
-                    if(
-                    	methodBinding != null
-                    	&& "onPause".equals(methodBinding.getName())
-                    	&& node.getParent().getNodeType() == ASTNode.EXPRESSION_STATEMENT
-                    ){
-                        r.insertAt(b.move(node.getParent()),
-                                method.getBody().statements().size(),
-                                Block.STATEMENTS_PROPERTY,
-                                method.getBody());
-                        return DO_NOT_VISIT_SUBTREE;
-                    }
-                }
-                /* If it reaches this part of the code, it
-                 * means it did not find onPause method.
-                 */
-                MethodDeclaration onPauseDeclaration = b.getAST().newMethodDeclaration();
-                onPauseDeclaration.setName(b.simpleName("onPause"));
-				//
-				NormalAnnotation annotation = b.getAST().newNormalAnnotation();
-				annotation.setTypeName(b.name("Override"));
-				onPauseDeclaration.modifiers().add(annotation);
-//
-				Modifier protectedModifier = b.getAST().newModifier(ModifierKeyword.PROTECTED_KEYWORD);
-				onPauseDeclaration.modifiers().add(protectedModifier);
-				//
-				SuperMethodInvocation superMethodInvocation = b.getAST().newSuperMethodInvocation();
-				superMethodInvocation.setName(b.simpleName("onPause"));
-				
-				//
-				ASTRewrite rewriter = ASTRewrite.create(b.getAST());
-				onPauseDeclaration.setBody(b.block(b.newlinePlaceholder(),b.getAST().newExpressionStatement(superMethodInvocation), b.newlinePlaceholder()));
-				
-				// add onPause declaration to the Activity
-				r.insertAfter(onPauseDeclaration, enclosingMethod);				
-                return DO_NOT_VISIT_SUBTREE;
-                
-            }
-        }
-        return VISIT_SUBTREE;
+    	if(isMethod(node, "android.os.PowerManager.WakeLock", "release")){
+    		// check whether it is being called in onDestroy
+    		final Refactorings r = this.ctx.getRefactorings();
+    		final ASTBuilder b = this.ctx.getASTBuilder();
+    		MethodDeclaration enclosingMethod = (MethodDeclaration) ASTNodes.getParent(node, ASTNode.METHOD_DECLARATION);
+    		if(isMethod(enclosingMethod.resolveBinding(), "android.app.Activity", "onDestroy")){
+    			TypeDeclaration typeDeclaration= (TypeDeclaration)ASTNodes.getParent(enclosingMethod, TypeDeclaration.class);
+    			MethodDeclaration[] methods = typeDeclaration.getMethods();
+
+    			for(MethodDeclaration method : methods ) {
+    				IMethodBinding methodBinding = method.resolveBinding();
+    				if(
+    					methodBinding != null
+    					&& "onPause".equals(methodBinding.getName())
+    					&& node.getParent().getNodeType() == ASTNode.EXPRESSION_STATEMENT
+    				){
+    					r.insertAt(b.move(node.getParent()),
+    							method.getBody().statements().size(),
+    							Block.STATEMENTS_PROPERTY,
+    							method.getBody());
+    					return DO_NOT_VISIT_SUBTREE;
+    				}
+    			}
+    			/* If it reaches this part of the code, it
+    			 * means it did not find onPause method.
+    			 */
+    			MethodDeclaration onPauseDeclaration = b.getAST().newMethodDeclaration();
+    			onPauseDeclaration.setName(b.simpleName("onPause"));
+    			//
+    			NormalAnnotation annotation = b.getAST().newNormalAnnotation();
+    			annotation.setTypeName(b.name("Override"));
+    			onPauseDeclaration.modifiers().add(annotation);
+    			//
+    			Modifier protectedModifier = b.getAST().newModifier(ModifierKeyword.PROTECTED_KEYWORD);
+    			onPauseDeclaration.modifiers().add(protectedModifier);
+    			//
+    			SuperMethodInvocation superMethodInvocation = b.getAST().newSuperMethodInvocation();
+    			superMethodInvocation.setName(b.simpleName("onPause"));
+
+    			//
+    			ASTRewrite rewriter = ASTRewrite.create(b.getAST());
+    			onPauseDeclaration.setBody(b.block(b.newlinePlaceholder(),b.getAST().newExpressionStatement(superMethodInvocation), b.newlinePlaceholder()));
+
+    			// add onPause declaration to the Activity
+    			r.insertAfter(onPauseDeclaration, enclosingMethod);				
+    			return DO_NOT_VISIT_SUBTREE;
+
+    		}
+    	}
+    	return VISIT_SUBTREE;
     }
 }
