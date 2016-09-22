@@ -44,8 +44,7 @@ public class WakeLockSample {
 			wl.acquire();
 		}
 
-		@Override
-		public void onDestroy(){
+		@Override() public void onDestroy(){
 			super.onDestroy();
 		}
 		

@@ -97,12 +97,13 @@ public class WakeLockRefactoring extends AbstractRefactoringRule {
                 onPauseDeclaration.setName(b.simpleName("onPause"));
 				onPauseDeclaration.setBody(b.block());
 				//
-				Modifier modifier = b.getAST().newModifier(ModifierKeyword.PROTECTED_KEYWORD);
-				onPauseDeclaration.modifiers().add(modifier);
-				//
 				NormalAnnotation annotation = b.getAST().newNormalAnnotation();
 				annotation.setTypeName(b.name("Override"));
-//				r.insertBefore(annotation,onPauseDeclaration);
+				onPauseDeclaration.modifiers().add(annotation);
+//
+				Modifier protectedModifier = b.getAST().newModifier(ModifierKeyword.PROTECTED_KEYWORD);
+				onPauseDeclaration.modifiers().add(protectedModifier);
+				
 				// add onPause declaration to the Activity
 				r.insertAfter(onPauseDeclaration, enclosingMethod);				
                 return DO_NOT_VISIT_SUBTREE;
