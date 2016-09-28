@@ -28,9 +28,11 @@
 package org.autorefactor.refactoring.rules;
 
 import org.eclipse.jdt.core.dom.ASTNode;
+import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.Annotation;
 import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.BodyDeclaration;
+import org.eclipse.jdt.core.dom.ChildListPropertyDescriptor;
 import org.eclipse.jdt.core.dom.ExpressionStatement;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.MethodInvocation;
@@ -120,6 +122,48 @@ public class WakeLockRefactoring extends AbstractRefactoringRule {
 
     		}
     	}
+    	else if(isMethod(node, "android.os.PowerManager.WakeLock", "acquire")){
+    		final Refactorings r = this.ctx.getRefactorings();
+    		final ASTBuilder b = this.ctx.getASTBuilder();
+    		TypeDeclaration typeDeclaration= (TypeDeclaration) ASTNodes.getParent(node, ASTNode.TYPE_DECLARATION);
+    		ReleasePresenceChecker releasePresenceChecker = new ReleasePresenceChecker();
+    		typeDeclaration.accept(releasePresenceChecker);
+			if(!releasePresenceChecker.releasePresent){
+//				r.remove(node);
+				r.replace(node.getName() /* old name node*/, b.simpleName("LOLOL"));
+				return DO_NOT_VISIT_SUBTREE;
+//    			MethodDeclaration[] methods = typeDeclaration.getMethods();
+//    			
+//    			for(MethodDeclaration method : methods ) {
+//    				IMethodBinding methodBinding = method.resolveBinding();
+//    				if(
+//    					methodBinding != null
+//    					&& "onPause".equals(methodBinding.getName())
+//    					&& node.getParent().getNodeType() == ASTNode.EXPRESSION_STATEMENT
+//    				){
+//    					r.insertAt(b.move(node.getParent()),
+//    							method.getBody().statements().size(),
+//    							Block.STATEMENTS_PROPERTY,
+//    							method.getBody());
+//    					return DO_NOT_VISIT_SUBTREE;
+//    				}
+//    			}
+
+			}
+			
+    	}
     	return VISIT_SUBTREE;
+    }
+    
+    public class ReleasePresenceChecker extends ASTVisitor {
+    	public boolean releasePresent = false;
+    	@Override
+        public boolean visit(MethodInvocation node) {
+    		if(isMethod(node, "android.os.PowerManager.WakeLock", "release")){
+    			this.releasePresent=true;
+    			return DO_NOT_VISIT_SUBTREE;
+    		}
+    		return VISIT_SUBTREE;
+    	}
     }
 }
