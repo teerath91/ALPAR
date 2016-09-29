@@ -33,12 +33,16 @@ import org.eclipse.jdt.core.dom.Annotation;
 import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.BodyDeclaration;
 import org.eclipse.jdt.core.dom.ChildListPropertyDescriptor;
+import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.ExpressionStatement;
 import org.eclipse.jdt.core.dom.IMethodBinding;
+import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.Modifier;
 import org.eclipse.jdt.core.dom.Modifier.ModifierKeyword;
 import org.eclipse.jdt.core.dom.NormalAnnotation;
+import org.eclipse.jdt.core.dom.PostfixExpression;
+import org.eclipse.jdt.core.dom.PrefixExpression;
 import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.SuperMethodInvocation;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
@@ -82,7 +86,9 @@ public class WakeLockRefactoring extends AbstractRefactoringRule {
     			TypeDeclaration typeDeclaration= (TypeDeclaration)ASTNodes.getParent(enclosingMethod, TypeDeclaration.class);
     			MethodDeclaration onPauseMethod = findMethodOfType("onPause", typeDeclaration);
     			if(onPauseMethod != null && node.getParent().getNodeType() == ASTNode.EXPRESSION_STATEMENT){
-    				r.insertAt(b.move(node.getParent()),
+    				Statement releaseNode = createWakelockReleaseNode(node);				
+    				r.remove(node.getParent());
+    				r.insertAt(releaseNode,
     						onPauseMethod.getBody().statements().size(),
     						Block.STATEMENTS_PROPERTY,
     						onPauseMethod.getBody());
@@ -106,14 +112,10 @@ public class WakeLockRefactoring extends AbstractRefactoringRule {
     		ReleasePresenceChecker releasePresenceChecker = new ReleasePresenceChecker();
     		typeDeclaration.accept(releasePresenceChecker);
 			if(!releasePresenceChecker.releasePresent){
-				MethodInvocation releaseInvocation = b.getAST().newMethodInvocation();
-				releaseInvocation.setName(b.simpleName("release"));
-				releaseInvocation.setExpression(b.copyExpression(node)); //use the same object used to acquire wakelock
-				ExpressionStatement expressionStatement = b.getAST().newExpressionStatement(releaseInvocation);
-				
+				Statement releaseNode = createWakelockReleaseNode(node);				
     			MethodDeclaration onPauseMethod = findMethodOfType("onPause", typeDeclaration);
     			if(onPauseMethod != null && node.getParent().getNodeType() == ASTNode.EXPRESSION_STATEMENT){
-    				r.insertAt(expressionStatement,
+    				r.insertAt(releaseNode,
     						onPauseMethod.getBody().statements().size(),
     						Block.STATEMENTS_PROPERTY,
     						onPauseMethod.getBody());
@@ -136,6 +138,26 @@ public class WakeLockRefactoring extends AbstractRefactoringRule {
 			}
     	}
     	return VISIT_SUBTREE;
+    }
+    
+    private Statement createWakelockReleaseNode(MethodInvocation methodInvocation){
+    	final ASTBuilder b = this.ctx.getASTBuilder();
+    	IfStatement ifStatement = b.getAST().newIfStatement();
+    	// test-clause
+    	PrefixExpression prefixExpression = b.getAST().newPrefixExpression();
+    	prefixExpression.setOperator(PrefixExpression.Operator.NOT);
+    	MethodInvocation isHeldInvocation = b.getAST().newMethodInvocation();
+		isHeldInvocation.setName(b.simpleName("isHeld"));
+		isHeldInvocation.setExpression(b.copyExpression(methodInvocation));
+		prefixExpression.setOperand(isHeldInvocation);
+		ifStatement.setExpression(prefixExpression);
+		// then
+		MethodInvocation releaseInvocation = b.getAST().newMethodInvocation();
+		releaseInvocation.setName(b.simpleName("release"));
+		releaseInvocation.setExpression(b.copyExpression(methodInvocation));
+		ExpressionStatement releaseExpressionStatement = b.getAST().newExpressionStatement(releaseInvocation);
+		ifStatement.setThenStatement(b.block(releaseExpressionStatement));
+		return ifStatement;
     }
 
 	private MethodDeclaration createOnPauseDeclaration() {

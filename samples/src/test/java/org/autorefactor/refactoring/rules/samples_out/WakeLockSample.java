@@ -22,7 +22,9 @@ public class WakeLockSample {
 		@Override
 		protected void onPause() {
 			super.onPause();
-			wl.release();
+			if (!wl.isHeld()) {
+	            wl.release();
+	        }
 		}
 		
 		@Override
@@ -51,7 +53,9 @@ public class WakeLockSample {
 
 		@Override() protected void onPause(){
 		super.onPause();
-		wl.release();
+		if (!wl.isHeld()) {
+            wl.release();
+        }
 		}
 	}
 	
@@ -70,7 +74,9 @@ public class WakeLockSample {
 
 		@Override() protected void onPause(){
 		super.onPause();
-		wl.release();
+		if (!wl.isHeld()) {
+            wl.release();
+        }
 		}
 	}
 	
@@ -89,7 +95,9 @@ public class WakeLockSample {
 
 		@Override() protected void onPause(){
 		super.onPause();
-		wl.release();
+		if (!wl.isHeld()) {
+            wl.release();
+        }
 		}
 	}
 }
