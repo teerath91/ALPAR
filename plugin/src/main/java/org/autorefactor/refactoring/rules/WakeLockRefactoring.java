@@ -89,24 +89,9 @@ public class WakeLockRefactoring extends AbstractRefactoringRule {
     				return DO_NOT_VISIT_SUBTREE;
     			}
     			/* If it reaches this part of the code, it
-    			 * means it did not find onPause method.
+    			 * means it did not find onPause method in the class.
     			 */
-    			MethodDeclaration onPauseDeclaration = b.getAST().newMethodDeclaration();
-    			onPauseDeclaration.setName(b.simpleName("onPause"));
-    			//
-    			NormalAnnotation annotation = b.getAST().newNormalAnnotation();
-    			annotation.setTypeName(b.name("Override"));
-    			onPauseDeclaration.modifiers().add(annotation);
-    			//
-    			Modifier protectedModifier = b.getAST().newModifier(ModifierKeyword.PROTECTED_KEYWORD);
-    			onPauseDeclaration.modifiers().add(protectedModifier);
-    			//
-    			SuperMethodInvocation superMethodInvocation = b.getAST().newSuperMethodInvocation();
-    			superMethodInvocation.setName(b.simpleName("onPause"));
-
-    			//
-    			ASTRewrite rewriter = ASTRewrite.create(b.getAST());
-    			onPauseDeclaration.setBody(b.block(b.newlinePlaceholder(),b.getAST().newExpressionStatement(superMethodInvocation), b.newlinePlaceholder()));
+    			MethodDeclaration onPauseDeclaration = createOnPauseDeclaration();
 
     			// add onPause declaration to the Activity
     			r.insertAfter(onPauseDeclaration, enclosingMethod);				
@@ -134,10 +119,45 @@ public class WakeLockRefactoring extends AbstractRefactoringRule {
     						onPauseMethod.getBody());
     				return DO_NOT_VISIT_SUBTREE;
     			}
+    			else{
+    				MethodDeclaration onPauseDeclaration = createOnPauseDeclaration();
+    				/* TODO @JnRouvignac, instead of using insertAt, calling 
+    				 * typeDeclaration.bodyDeclarations().add(onPauseDeclaration);
+    				 * would be more intuitive.
+    				 */
+    				r.insertAt(
+    						onPauseDeclaration,
+    						typeDeclaration.bodyDeclarations().size(),
+    						typeDeclaration.getBodyDeclarationsProperty(),
+    						typeDeclaration
+    				);
+    				return DO_NOT_VISIT_SUBTREE;
+    			}
 			}
     	}
     	return VISIT_SUBTREE;
     }
+
+	private MethodDeclaration createOnPauseDeclaration() {
+		final ASTBuilder b = this.ctx.getASTBuilder();
+		MethodDeclaration onPauseDeclaration = b.getAST().newMethodDeclaration();
+		onPauseDeclaration.setName(b.simpleName("onPause"));
+		//
+		NormalAnnotation annotation = b.getAST().newNormalAnnotation();
+		annotation.setTypeName(b.name("Override"));
+		onPauseDeclaration.modifiers().add(annotation);
+		//
+		Modifier protectedModifier = b.getAST().newModifier(ModifierKeyword.PROTECTED_KEYWORD);
+		onPauseDeclaration.modifiers().add(protectedModifier);
+		//
+		SuperMethodInvocation superMethodInvocation = b.getAST().newSuperMethodInvocation();
+		superMethodInvocation.setName(b.simpleName("onPause"));
+
+		//
+		ASTRewrite rewriter = ASTRewrite.create(b.getAST());
+		onPauseDeclaration.setBody(b.block(b.newlinePlaceholder(),b.getAST().newExpressionStatement(superMethodInvocation), b.newlinePlaceholder()));
+		return onPauseDeclaration;
+	}
 
 	private MethodDeclaration findMethodOfType(String methodToFind,
 			TypeDeclaration typeDeclaration) {
