@@ -80,21 +80,13 @@ public class WakeLockRefactoring extends AbstractRefactoringRule {
     		MethodDeclaration enclosingMethod = (MethodDeclaration) ASTNodes.getParent(node, ASTNode.METHOD_DECLARATION);
     		if(isMethod(enclosingMethod.resolveBinding(), "android.app.Activity", "onDestroy")){
     			TypeDeclaration typeDeclaration= (TypeDeclaration)ASTNodes.getParent(enclosingMethod, TypeDeclaration.class);
-    			MethodDeclaration[] methods = typeDeclaration.getMethods();
-
-    			for(MethodDeclaration method : methods ) {
-    				IMethodBinding methodBinding = method.resolveBinding();
-    				if(
-    					methodBinding != null
-    					&& "onPause".equals(methodBinding.getName())
-    					&& node.getParent().getNodeType() == ASTNode.EXPRESSION_STATEMENT
-    				){
-    					r.insertAt(b.move(node.getParent()),
-    							method.getBody().statements().size(),
-    							Block.STATEMENTS_PROPERTY,
-    							method.getBody());
-    					return DO_NOT_VISIT_SUBTREE;
-    				}
+    			MethodDeclaration onPauseMethod = findMethodOfType("onPause", typeDeclaration);
+    			if(onPauseMethod != null && node.getParent().getNodeType() == ASTNode.EXPRESSION_STATEMENT){
+    				r.insertAt(b.move(node.getParent()),
+    						onPauseMethod.getBody().statements().size(),
+    						Block.STATEMENTS_PROPERTY,
+    						onPauseMethod.getBody());
+    				return DO_NOT_VISIT_SUBTREE;
     			}
     			/* If it reaches this part of the code, it
     			 * means it did not find onPause method.
@@ -129,31 +121,40 @@ public class WakeLockRefactoring extends AbstractRefactoringRule {
     		ReleasePresenceChecker releasePresenceChecker = new ReleasePresenceChecker();
     		typeDeclaration.accept(releasePresenceChecker);
 			if(!releasePresenceChecker.releasePresent){
-//				r.remove(node);
-				r.replace(node.getName() /* old name node*/, b.simpleName("LOLOL"));
-				return DO_NOT_VISIT_SUBTREE;
-//    			MethodDeclaration[] methods = typeDeclaration.getMethods();
-//    			
-//    			for(MethodDeclaration method : methods ) {
-//    				IMethodBinding methodBinding = method.resolveBinding();
-//    				if(
-//    					methodBinding != null
-//    					&& "onPause".equals(methodBinding.getName())
-//    					&& node.getParent().getNodeType() == ASTNode.EXPRESSION_STATEMENT
-//    				){
-//    					r.insertAt(b.move(node.getParent()),
-//    							method.getBody().statements().size(),
-//    							Block.STATEMENTS_PROPERTY,
-//    							method.getBody());
-//    					return DO_NOT_VISIT_SUBTREE;
-//    				}
-//    			}
-
+				MethodInvocation releaseInvocation = b.getAST().newMethodInvocation();
+				releaseInvocation.setName(b.simpleName("release"));
+				releaseInvocation.setExpression(b.copyExpression(node)); //use the same object used to acquire wakelock
+				ExpressionStatement expressionStatement = b.getAST().newExpressionStatement(releaseInvocation);
+				
+    			MethodDeclaration onPauseMethod = findMethodOfType("onPause", typeDeclaration);
+    			if(onPauseMethod != null && node.getParent().getNodeType() == ASTNode.EXPRESSION_STATEMENT){
+    				r.insertAt(expressionStatement,
+    						onPauseMethod.getBody().statements().size(),
+    						Block.STATEMENTS_PROPERTY,
+    						onPauseMethod.getBody());
+    				return DO_NOT_VISIT_SUBTREE;
+    			}
 			}
-			
     	}
     	return VISIT_SUBTREE;
     }
+
+	private MethodDeclaration findMethodOfType(String methodToFind,
+			TypeDeclaration typeDeclaration) {
+		MethodDeclaration[] methods = typeDeclaration.getMethods();
+		
+		for(MethodDeclaration method : methods ) {
+			IMethodBinding methodBinding = method.resolveBinding();
+								if(
+				methodBinding != null
+				&& methodToFind.equals(methodBinding.getName())
+			){
+				return method;
+			}
+		}
+		return null;
+	}
+    
     
     public class ReleasePresenceChecker extends ASTVisitor {
     	public boolean releasePresent = false;
