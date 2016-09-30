@@ -64,8 +64,10 @@ public class RecycleRefactoring extends AbstractRefactoringRule {
 	@Override
 	public String getDescription() {
 		// TODO Auto-generated method stub
-		return "Many resources, such as TypedArrays, VelocityTrackers, etc., should be"
-				+ "recycled (with a recycle()/close() call) after use.";
+		return "Many resources, such as TypedArrays, VelocityTrackers, etc., should be "
+				+ "recycled (with a recycle()/close() call) after use. "
+				+ "Inspired from "
+				+ "https://android.googlesource.com/platform/tools/base/+/master/lint/libs/lint-checks/src/main/java/com/android/tools/lint/checks/CleanupDetector.java";
 	}
 
 	@Override

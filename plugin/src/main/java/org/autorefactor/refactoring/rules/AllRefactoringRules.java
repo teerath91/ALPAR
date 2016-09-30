@@ -114,6 +114,7 @@ public final class AllRefactoringRules {
                 new ReplaceQualifiedNamesBySimpleNamesRefactoring(),
                 new RemoveEmptyLinesRefactoring(),
                 new WakeLockRefactoring(),
+                new RecycleRefactoring(),
                 new SwitchRefactoring());
     }
 
