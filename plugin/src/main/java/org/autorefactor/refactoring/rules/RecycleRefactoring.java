@@ -43,12 +43,17 @@ import org.eclipse.jdt.core.dom.Modifier.ModifierKeyword;
 import org.eclipse.jdt.core.dom.NormalAnnotation;
 import org.eclipse.jdt.core.dom.PostfixExpression;
 import org.eclipse.jdt.core.dom.PrefixExpression;
+import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.Statement;
+import org.eclipse.jdt.core.dom.StructuralPropertyDescriptor;
 import org.eclipse.jdt.core.dom.SuperMethodInvocation;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
+import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.rewrite.ASTRewrite;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.internal.corext.dom.ASTNodes;
+
+import com.sun.jndi.cosnaming.RemoteToCorba;
 
 import static org.autorefactor.refactoring.ASTHelper.*;
 import static org.eclipse.jdt.core.dom.ASTNode.*;
@@ -77,6 +82,25 @@ public class RecycleRefactoring extends AbstractRefactoringRule {
 
     @Override
     public boolean visit(MethodInvocation node) {
+		final ASTBuilder b = this.ctx.getASTBuilder();
+		final Refactorings r = this.ctx.getRefactorings();
+		if(isMethod(
+			node,
+			"android.database.sqlite.SQLiteDatabase",
+			"query", "java.lang.String","java.lang.String[]","java.lang.String","java.lang.String[]", "java.lang.String","java.lang.String","java.lang.String")
+		){
+			r.replace(node.getName(), b.simpleName("querby"));
+			MethodInvocation closeInvocation = b.getAST().newMethodInvocation();
+    		closeInvocation.setName(b.simpleName("close"));
+    		VariableDeclarationFragment variableDeclarationFragment = (VariableDeclarationFragment) ASTNodes.getParent(node, ASTNode.VARIABLE_DECLARATION_FRAGMENT);
+    		SimpleName cursorExpression = variableDeclarationFragment.getName();
+    		closeInvocation.setExpression(b.copy(cursorExpression));
+    		ExpressionStatement expressionStatement = b.getAST().newExpressionStatement(closeInvocation);
+    		Statement cursorAssignmentExpressionStatement = (Statement) ASTNodes.getParent(node, ASTNode.VARIABLE_DECLARATION_STATEMENT);
+    		r.insertAfter(expressionStatement, cursorAssignmentExpressionStatement);
+    		
+    		return DO_NOT_VISIT_SUBTREE;
+    	}
     	return VISIT_SUBTREE;
     }
     
