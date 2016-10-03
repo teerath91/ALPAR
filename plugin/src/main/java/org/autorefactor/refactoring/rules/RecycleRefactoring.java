@@ -89,19 +89,44 @@ public class RecycleRefactoring extends AbstractRefactoringRule {
 			"android.database.sqlite.SQLiteDatabase",
 			"query", "java.lang.String","java.lang.String[]","java.lang.String","java.lang.String[]", "java.lang.String","java.lang.String","java.lang.String")
 		){
-			r.replace(node.getName(), b.simpleName("querby"));
-			MethodInvocation closeInvocation = b.getAST().newMethodInvocation();
-    		closeInvocation.setName(b.simpleName("close"));
-    		VariableDeclarationFragment variableDeclarationFragment = (VariableDeclarationFragment) ASTNodes.getParent(node, ASTNode.VARIABLE_DECLARATION_FRAGMENT);
-    		SimpleName cursorExpression = variableDeclarationFragment.getName();
-    		closeInvocation.setExpression(b.copy(cursorExpression));
-    		ExpressionStatement expressionStatement = b.getAST().newExpressionStatement(closeInvocation);
-    		Statement cursorAssignmentExpressionStatement = (Statement) ASTNodes.getParent(node, ASTNode.VARIABLE_DECLARATION_STATEMENT);
-    		r.insertAfter(expressionStatement, cursorAssignmentExpressionStatement);
-    		
-    		return DO_NOT_VISIT_SUBTREE;
+//			r.replace(node.getName(), b.simpleName("querby"));
+			ClosePresenceChecker closePresenceChecker = new ClosePresenceChecker("closeVariableTODO");
+    		Block block = (Block) ASTNodes.getParent(node, ASTNode.BLOCK);
+    		block.accept(closePresenceChecker);
+    		if(!closePresenceChecker.closePresent){
+    			MethodInvocation closeInvocation = b.getAST().newMethodInvocation();
+        		closeInvocation.setName(b.simpleName("close"));
+        		VariableDeclarationFragment variableDeclarationFragment = (VariableDeclarationFragment) ASTNodes.getParent(node, ASTNode.VARIABLE_DECLARATION_FRAGMENT);
+        		SimpleName cursorExpression = variableDeclarationFragment.getName();
+        		closeInvocation.setExpression(b.copy(cursorExpression));
+        		ExpressionStatement expressionStatement = b.getAST().newExpressionStatement(closeInvocation);
+        		Statement cursorAssignmentExpressionStatement = (Statement) ASTNodes.getParent(node, ASTNode.VARIABLE_DECLARATION_STATEMENT);
+        		r.insertAfter(expressionStatement, cursorAssignmentExpressionStatement);
+        		return DO_NOT_VISIT_SUBTREE;
+    		}
     	}
     	return VISIT_SUBTREE;
     }
     
+    public class ClosePresenceChecker extends ASTVisitor {
+    	public boolean closePresent;
+    	private String cursorVariableName;
+    	
+    	
+    	public ClosePresenceChecker(String cursorVariableName) {
+			super();
+			this.closePresent = false;
+			this.cursorVariableName = cursorVariableName;
+		}
+
+		@Override
+        public boolean visit(MethodInvocation node) {
+    		if(isMethod(node, "android.database.Cursor", "close")){
+    			this.closePresent=true;
+    			return DO_NOT_VISIT_SUBTREE;
+    		}
+    		return VISIT_SUBTREE;
+    	}
+    }
+
 }
