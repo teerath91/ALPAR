@@ -61,6 +61,7 @@ import static org.eclipse.jdt.core.dom.ASTNode.*;
 import java.util.List;
 
 import org.autorefactor.refactoring.ASTBuilder;
+import org.autorefactor.refactoring.ASTHelper;
 import org.autorefactor.refactoring.Refactorings;
 
 /** See {@link #getDescription()} method. */
@@ -80,16 +81,43 @@ public class RecycleRefactoring extends AbstractRefactoringRule {
 		return "RecycleRefactoring";
 	}
 
-    @Override
-    public boolean visit(MethodInvocation node) {
-		final ASTBuilder b = this.ctx.getASTBuilder();
-		final Refactorings r = this.ctx.getRefactorings();
+	private boolean doesMethodReturnCursor(MethodInvocation node){
 		if(isMethod(
 			node,
 			"android.database.sqlite.SQLiteDatabase",
 			"query", "java.lang.String","java.lang.String[]","java.lang.String","java.lang.String[]", "java.lang.String","java.lang.String","java.lang.String")
 		){
-//			r.replace(node.getName(), b.simpleName("querby"));
+			return true;
+		}
+		if(isMethod(
+			node,
+			"android.content.ContentProvider",
+			"query", "android.net.Uri","java.lang.String[]","java.lang.String","java.lang.String[]", "java.lang.String")
+		){
+			return true;
+		}
+		if(isMethod(
+			node,
+			"android.content.ContentResolver",
+			"query", "android.net.Uri","java.lang.String[]","java.lang.String","java.lang.String[]", "java.lang.String")
+		){
+			return true;
+		}
+		if(isMethod(
+			node,
+			"android.content.ContentProviderClient",
+			"query", "android.net.Uri","java.lang.String[]","java.lang.String","java.lang.String[]", "java.lang.String")
+		){
+			return true;
+		}
+		return false;
+	}
+	
+    @Override
+    public boolean visit(MethodInvocation node) {
+		final ASTBuilder b = this.ctx.getASTBuilder();
+		final Refactorings r = this.ctx.getRefactorings();
+		if(doesMethodReturnCursor(node)){
 			ClosePresenceChecker closePresenceChecker = new ClosePresenceChecker("closeVariableTODO");
     		Block block = (Block) ASTNodes.getParent(node, ASTNode.BLOCK);
     		block.accept(closePresenceChecker);
@@ -101,14 +129,64 @@ public class RecycleRefactoring extends AbstractRefactoringRule {
         		closeInvocation.setExpression(b.copy(cursorExpression));
         		ExpressionStatement expressionStatement = b.getAST().newExpressionStatement(closeInvocation);
         		Statement cursorAssignmentExpressionStatement = (Statement) ASTNodes.getParent(node, ASTNode.VARIABLE_DECLARATION_STATEMENT);
-        		r.insertAfter(expressionStatement, cursorAssignmentExpressionStatement);
+        		Statement lastCursorAccess = getLastCursorStatement(cursorExpression, cursorAssignmentExpressionStatement);
+//        		if (lastCursorAccess == null){
+//        			throw new IllegalArgumentException("Last cursor null");
+//        		}
+        		r.insertAfter(expressionStatement, lastCursorAccess);
         		return DO_NOT_VISIT_SUBTREE;
     		}
     	}
     	return VISIT_SUBTREE;
     }
-    
-    public class ClosePresenceChecker extends ASTVisitor {
+
+    /* Returns the last node where a variable was accessed 
+     * before being assigned again or destroyed. 
+     */
+	private Statement getLastCursorStatement(SimpleName cursorSimpleName,
+			Statement cursorAssignmentExpressionStatement) {
+		Block block = (Block) ASTNodes.getParent(cursorAssignmentExpressionStatement, ASTNode.BLOCK);
+		LastCursorChecker lastCursorChecker = new LastCursorChecker(cursorSimpleName);
+		block.accept(lastCursorChecker);
+		ASTNode lastCursorStatement = lastCursorChecker.lastCursorUse.getParent();
+		int i=0;
+		while(lastCursorStatement!=null &&
+			!block.statements().contains(lastCursorStatement)
+		){
+			lastCursorStatement = lastCursorStatement.getParent();
+			if(i>20){
+				throw new IllegalArgumentException("lol");
+			}
+		}
+		return (Statement) lastCursorStatement;
+	}
+
+	public class LastCursorChecker extends ASTVisitor {
+		public SimpleName lastCursorUse;
+    	private SimpleName cursorSimpleName;
+    	
+    	public LastCursorChecker(SimpleName cursorSimpleName) {
+			super();
+			this.lastCursorUse = null;
+			this.cursorSimpleName = cursorSimpleName;
+		}
+    	
+		@Override
+        public boolean visit(SimpleName node) {
+			String test = node.getIdentifier();
+			if("delete".equals(test)){
+				test ="delete oh yeah"; 
+			}
+    		if(ASTHelper.isSameLocalVariable(node, cursorSimpleName)){        			
+    			
+    			this.lastCursorUse = node;
+    		}
+    		return VISIT_SUBTREE;
+    	}
+    }
+
+
+	public class ClosePresenceChecker extends ASTVisitor {
     	public boolean closePresent;
     	private String cursorVariableName;
     	
