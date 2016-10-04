@@ -133,8 +133,10 @@ public class RecycleRefactoring extends AbstractRefactoringRule {
 //        		if (lastCursorAccess == null){
 //        			throw new IllegalArgumentException("Last cursor null");
 //        		}
-        		r.insertAfter(expressionStatement, lastCursorAccess);
-        		return DO_NOT_VISIT_SUBTREE;
+        		if(lastCursorAccess.getNodeType() != ASTNode.RETURN_STATEMENT){
+        			r.insertAfter(expressionStatement, lastCursorAccess);
+        			return DO_NOT_VISIT_SUBTREE;
+        		}
     		}
     	}
     	return VISIT_SUBTREE;

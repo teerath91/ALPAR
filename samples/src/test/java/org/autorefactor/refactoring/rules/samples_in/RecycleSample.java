@@ -40,5 +40,16 @@ public class RecycleSample {
 
         return total_deletions;
     }
+    
+    public Cursor getCursor(SQLiteDatabase db) {
+        Cursor cursor = db.query("TABLE_TRIPS",
+                new String[]{
+                        "KEY_TRIP_ID"},
+                "ROUTE_ID" + "=?",
+                new String[]{Long.toString(5)},
+                null, null, null);
+
+        return cursor;
+    }
 }
 
