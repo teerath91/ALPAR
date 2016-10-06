@@ -131,6 +131,7 @@ public class RecycleRefactoring extends AbstractRefactoringRule {
 				cursorExpression = (SimpleName) variableAssignment.getLeftHandSide();
 				variableAssignmentNode = variableAssignment;
 			}
+			// Check whether it has been closed
 			ClosePresenceChecker closePresenceChecker = new ClosePresenceChecker(cursorExpression);
 			VisitorDecorator visitor = new VisitorDecorator(variableAssignmentNode, cursorExpression, closePresenceChecker);
     		Block block = (Block) ASTNodes.getParent(node, ASTNode.BLOCK);
@@ -140,11 +141,7 @@ public class RecycleRefactoring extends AbstractRefactoringRule {
         		closeInvocation.setName(b.simpleName("close"));
         		closeInvocation.setExpression(b.copy(cursorExpression));
         		ExpressionStatement expressionStatement = b.getAST().newExpressionStatement(closeInvocation);
-        		Statement cursorAssignmentExpressionStatement = (Statement) ASTNodes.getParent(node, ASTNode.VARIABLE_DECLARATION_STATEMENT);
-        		Statement lastCursorAccess = getLastCursorStatement(cursorExpression, variableAssignmentNode);
-//        		if (lastCursorAccess == null){
-//        			throw new IllegalArgumentException("Last cursor null");
-//        		}
+        		Statement lastCursorAccess = closePresenceChecker.getLastCursorStatementInBlock(block);
         		if(lastCursorAccess.getNodeType() != ASTNode.RETURN_STATEMENT){
         			r.insertAfter(expressionStatement, lastCursorAccess);
         			return DO_NOT_VISIT_SUBTREE;
@@ -154,61 +151,32 @@ public class RecycleRefactoring extends AbstractRefactoringRule {
     	return VISIT_SUBTREE;
     }
 
-    /* Returns the last node where a variable was accessed 
-     * before being assigned again or destroyed. 
-     */
-	private Statement getLastCursorStatement(SimpleName cursorSimpleName, ASTNode variableAssignmentNode) {
-		Block block = (Block) ASTNodes.getParent(cursorSimpleName, ASTNode.BLOCK);
-		LastCursorChecker lastCursorChecker = new LastCursorChecker(cursorSimpleName);
-		VisitorDecorator visitor = new VisitorDecorator(variableAssignmentNode, cursorSimpleName, lastCursorChecker);
-		block.accept(visitor);
-		ASTNode lastCursorStatement = lastCursorChecker.lastCursorUse.getParent();
-		while(lastCursorStatement!=null &&
-			!block.statements().contains(lastCursorStatement)
-		){
-			lastCursorStatement = lastCursorStatement.getParent();
-		}
-		return (Statement) lastCursorStatement;
-	}
-
-	public class LastCursorChecker extends ASTVisitor {
-		public SimpleName lastCursorUse;
-    	private SimpleName cursorSimpleName;
-    	
-    	public LastCursorChecker(SimpleName cursorSimpleName) {
-			super();
-			this.lastCursorUse = null;
-			this.cursorSimpleName = cursorSimpleName;
-		}
-    	
-		@Override
-        public boolean visit(SimpleName node) {
-    		if(ASTHelper.isSameLocalVariable(node, cursorSimpleName)){        			
-    			this.lastCursorUse = node;
-    		}
-    		return VISIT_SUBTREE;
-    	}
-		
-		@Override
-        public boolean visit(Assignment node) {
-			if(ASTHelper.isSameLocalVariable(node.getLeftHandSide(), cursorSimpleName)){        			
-				return DO_NOT_VISIT_SUBTREE;
-			}
-			return VISIT_SUBTREE;
-		}
-    }
-
-
 	public class ClosePresenceChecker extends ASTVisitor {
     	public boolean closePresent;
+    	private SimpleName lastCursorUse;
     	private SimpleName cursorSimpleName;
     	
     	
     	public ClosePresenceChecker(SimpleName cursorSimpleName) {
 			super();
 			this.closePresent = false;
+			this.lastCursorUse = null;
 			this.cursorSimpleName = cursorSimpleName;
 		}
+    	
+    	/* Returns the last statement in the block where a variable
+    	 * was accessed before being assigned again or destroyed. 
+         */
+    	public Statement getLastCursorStatementInBlock(Block block){
+    		ASTNode lastCursorStatement = this.lastCursorUse.getParent();
+    		while(lastCursorStatement!=null &&
+    			!block.statements().contains(lastCursorStatement)
+    		){
+    			lastCursorStatement = lastCursorStatement.getParent();
+    		}
+    		return (Statement) lastCursorStatement;
+    	}
+
 
 		@Override
         public boolean visit(MethodInvocation node) {
@@ -222,12 +190,22 @@ public class RecycleRefactoring extends AbstractRefactoringRule {
     	}
 		
 		@Override
+        public boolean visit(SimpleName node) {
+    		if(ASTHelper.isSameLocalVariable(node, cursorSimpleName)){        			
+    			this.lastCursorUse = node;
+    		}
+    		return VISIT_SUBTREE;
+    	}
+		
+		@Override
         public boolean visit(Assignment node) {
 			if(ASTHelper.isSameLocalVariable(node.getLeftHandSide(), cursorSimpleName)){       
 				return DO_NOT_VISIT_SUBTREE;
 			}
 			return VISIT_SUBTREE;
 		}
+		
+		
     }
 	
 	/*
@@ -278,11 +256,7 @@ public class RecycleRefactoring extends AbstractRefactoringRule {
 		@Override
         public boolean visit(MethodInvocation node) {
 			return visitor.visit(node);
-		}
-		
-		
-		
-		
+		}		
 	}
 
 }
