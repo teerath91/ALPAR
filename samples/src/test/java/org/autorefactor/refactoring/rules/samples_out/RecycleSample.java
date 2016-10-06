@@ -56,4 +56,11 @@ public class RecycleSample {
 
         return cursor;
     }
+    
+    public void testMultipleAssignment(Uri uri, ContentProvider provider){
+    	Cursor query = provider.query(uri, null, null, null, null);
+    	query.close();
+    	query = provider.query(uri, null, null, null, null);
+    	query.close();
+    }
 }
