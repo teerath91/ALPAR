@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2013-2016 Jean-Noël Rouvignac - initial API and implementation
  * Copyright (C) 2016 Fabrice Tiercelin - Make sure we do not visit again modified nodes
- * Copyright (C) 2016 Luis Cruz - Android Refactoring
+ * Copyright (C) 2016 Luis Cruz - Android Refactoring Rules
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -65,12 +65,17 @@ import org.autorefactor.refactoring.ASTBuilder;
 import org.autorefactor.refactoring.ASTHelper;
 import org.autorefactor.refactoring.Refactorings;
 
+/* 
+ * TODO Track local variables. E.g., when a TypedArray a is assigned to variable b,
+ * release() should be called only in one variable. 
+ * TODO (low priority) check whether resources are being used after release. 
+ */
+
 /** See {@link #getDescription()} method. */
 public class RecycleRefactoring extends AbstractRefactoringRule {
 
 	@Override
 	public String getDescription() {
-		// TODO Auto-generated method stub
 		return "Many resources, such as TypedArrays, VelocityTrackers, etc., should be "
 				+ "recycled (with a recycle()/close() call) after use. "
 				+ "Inspired from "
@@ -82,43 +87,115 @@ public class RecycleRefactoring extends AbstractRefactoringRule {
 		return "RecycleRefactoring";
 	}
 
-	private boolean doesMethodReturnCursor(MethodInvocation node){
+	private String doesMethodReturnCursor(MethodInvocation node){
 		if(isMethod(
 			node,
 			"android.database.sqlite.SQLiteDatabase",
 			"query", "java.lang.String","java.lang.String[]","java.lang.String","java.lang.String[]", "java.lang.String","java.lang.String","java.lang.String")
 		){
-			return true;
+			return "close";
 		}
-		if(isMethod(
+		else if(isMethod(
 			node,
 			"android.content.ContentProvider",
 			"query", "android.net.Uri","java.lang.String[]","java.lang.String","java.lang.String[]", "java.lang.String")
 		){
-			return true;
+			return "close";
 		}
-		if(isMethod(
+		else if(isMethod(
 			node,
 			"android.content.ContentResolver",
 			"query", "android.net.Uri","java.lang.String[]","java.lang.String","java.lang.String[]", "java.lang.String")
 		){
-			return true;
+			return "close";
 		}
-		if(isMethod(
+		else if(isMethod(
 			node,
 			"android.content.ContentProviderClient",
 			"query", "android.net.Uri","java.lang.String[]","java.lang.String","java.lang.String[]", "java.lang.String")
 		){
-			return true;
+			return "close";
 		}
-		return false;
+		else if(isMethod(
+			node,
+			"android.content.Context",
+			"obtainStyledAttributes", "android.util.AttributeSet","int[]","int","int")
+		){
+			return "recycle";
+		}
+		else if(isMethod(
+			node,
+			"android.content.Context",
+			"obtainStyledAttributes", "int[]")
+		){
+			return "recycle";
+		}
+		else if(isMethod(
+			node,
+			"android.content.Context",
+			"obtainStyledAttributes", "int", "int[]")
+		){
+			return "recycle";
+		}
+		else if(isMethod(
+			node,
+			"android.content.Context",
+			"obtainStyledAttributes", "android.util.AttributeSet", "int[]")
+		){
+			return "recycle";
+		}
+		else if(isMethod(
+			node,
+			"android.view.VelocityTracker",
+			"obtain")
+		){
+			return "recycle";
+		}
+		else if(isMethod(
+			node,
+			"android.os.Handler",
+			"obtainMessage")
+		){
+			return "recycle";
+		}
+		else if(isMethod(
+			node,
+			"android.os.Message",
+			"obtain")
+		){
+			return "recycle";
+		}
+		else if(isMethod(
+			node,
+			"android.view.MotionEvent",
+			"obtainNoHistory", "android.view.MotionEvent")
+		){
+			return "recycle";
+		}
+		else if(isMethod(
+			node,
+			"android.view.MotionEvent",
+			"obtain", "android.view.MotionEvent")
+		){
+			return "recycle";
+		}
+		else if(isMethod(
+			node,
+			"android.os.Parcel",
+			"obtain")
+		){
+			return "recycle";
+		}
+		
+		return null;
 	}
 	
     @Override
     public boolean visit(MethodInvocation node) {
 		final ASTBuilder b = this.ctx.getASTBuilder();
 		final Refactorings r = this.ctx.getRefactorings();
-		if(doesMethodReturnCursor(node)){
+		String recycleMethodName = doesMethodReturnCursor(node);
+		if(recycleMethodName != null){
 			SimpleName cursorExpression = null;
 			ASTNode variableAssignmentNode = null;
 			VariableDeclarationFragment variableDeclarationFragment = (VariableDeclarationFragment) ASTNodes.getParent(node, ASTNode.VARIABLE_DECLARATION_FRAGMENT);
@@ -132,13 +209,13 @@ public class RecycleRefactoring extends AbstractRefactoringRule {
 				variableAssignmentNode = variableAssignment;
 			}
 			// Check whether it has been closed
-			ClosePresenceChecker closePresenceChecker = new ClosePresenceChecker(cursorExpression);
+			ClosePresenceChecker closePresenceChecker = new ClosePresenceChecker(cursorExpression, recycleMethodName);
 			VisitorDecorator visitor = new VisitorDecorator(variableAssignmentNode, cursorExpression, closePresenceChecker);
     		Block block = (Block) ASTNodes.getParent(node, ASTNode.BLOCK);
     		block.accept(visitor);
     		if(!closePresenceChecker.closePresent){
     			MethodInvocation closeInvocation = b.getAST().newMethodInvocation();
-        		closeInvocation.setName(b.simpleName("close"));
+        		closeInvocation.setName(b.simpleName(recycleMethodName));
         		closeInvocation.setExpression(b.copy(cursorExpression));
         		ExpressionStatement expressionStatement = b.getAST().newExpressionStatement(closeInvocation);
         		Statement lastCursorAccess = closePresenceChecker.getLastCursorStatementInBlock(block);
@@ -155,13 +232,15 @@ public class RecycleRefactoring extends AbstractRefactoringRule {
     	public boolean closePresent;
     	private SimpleName lastCursorUse;
     	private SimpleName cursorSimpleName;
+		private String recycleMethodName;
     	
     	
-    	public ClosePresenceChecker(SimpleName cursorSimpleName) {
+    	public ClosePresenceChecker(SimpleName cursorSimpleName, String recycleMethodName) {
 			super();
 			this.closePresent = false;
 			this.lastCursorUse = null;
 			this.cursorSimpleName = cursorSimpleName;
+			this.recycleMethodName = recycleMethodName;
 		}
     	
     	/* Returns the last statement in the block where a variable
@@ -180,12 +259,12 @@ public class RecycleRefactoring extends AbstractRefactoringRule {
 
 		@Override
         public boolean visit(MethodInvocation node) {
-    		if(isMethod(node, "android.database.Cursor", "close")){
-    			if(isSameLocalVariable(cursorSimpleName, node.getExpression())){
+    		if(isSameLocalVariable(cursorSimpleName, node.getExpression())){
+    			if(this.recycleMethodName.equals(node.getName().getIdentifier())){
     				this.closePresent=true;
-    				return DO_NOT_VISIT_SUBTREE;
+    				return DO_NOT_VISIT_SUBTREE;    				
     			}
-    		}
+   			}
     		return VISIT_SUBTREE;
     	}
 		
