@@ -37,6 +37,7 @@ import org.eclipse.jdt.core.dom.ChildListPropertyDescriptor;
 import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.ExpressionStatement;
 import org.eclipse.jdt.core.dom.IMethodBinding;
+import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.Modifier;
@@ -86,6 +87,22 @@ public class RecycleRefactoring extends AbstractRefactoringRule {
 	public String getName() {
 		return "RecycleRefactoring";
 	}
+	
+	private static boolean isMethodIgnoringParameters(MethodInvocation node,
+			String typeQualifiedName, String methodName){
+		if (node == null) {
+            return false;
+        }
+        final IMethodBinding methodBinding = node.resolveMethodBinding();
+        if (methodBinding == null ||
+        		!methodName.equals(methodBinding.getName())){
+        	return false;
+        }
+        final ITypeBinding declaringClazz = methodBinding.getDeclaringClass();
+        final ITypeBinding implementedType =
+                findImplementedType(declaringClazz, typeQualifiedName);
+        return instanceOf(declaringClazz, typeQualifiedName);
+	}
 
 	private String doesMethodReturnCursor(MethodInvocation node){
 		if(isMethod(
@@ -116,31 +133,10 @@ public class RecycleRefactoring extends AbstractRefactoringRule {
 		){
 			return "close";
 		}
-		else if(isMethod(
+		else if(isMethodIgnoringParameters(
 			node,
 			"android.content.Context",
-			"obtainStyledAttributes", "android.util.AttributeSet","int[]","int","int")
-		){
-			return "recycle";
-		}
-		else if(isMethod(
-			node,
-			"android.content.Context",
-			"obtainStyledAttributes", "int[]")
-		){
-			return "recycle";
-		}
-		else if(isMethod(
-			node,
-			"android.content.Context",
-			"obtainStyledAttributes", "int", "int[]")
-		){
-			return "recycle";
-		}
-		else if(isMethod(
-			node,
-			"android.content.Context",
-			"obtainStyledAttributes", "android.util.AttributeSet", "int[]")
+			"obtainStyledAttributes")
 		){
 			return "recycle";
 		}
@@ -151,14 +147,14 @@ public class RecycleRefactoring extends AbstractRefactoringRule {
 		){
 			return "recycle";
 		}
-		else if(isMethod(
+		else if(isMethodIgnoringParameters(
 			node,
 			"android.os.Handler",
 			"obtainMessage")
 		){
 			return "recycle";
 		}
-		else if(isMethod(
+		else if(isMethodIgnoringParameters(
 			node,
 			"android.os.Message",
 			"obtain")
@@ -172,10 +168,10 @@ public class RecycleRefactoring extends AbstractRefactoringRule {
 		){
 			return "recycle";
 		}
-		else if(isMethod(
+		else if(isMethodIgnoringParameters(
 			node,
 			"android.view.MotionEvent",
-			"obtain", "android.view.MotionEvent")
+			"obtain")
 		){
 			return "recycle";
 		}
