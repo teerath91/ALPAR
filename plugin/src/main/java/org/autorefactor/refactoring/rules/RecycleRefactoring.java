@@ -157,6 +157,13 @@ public class RecycleRefactoring extends AbstractRefactoringRule {
 		){
 			return "recycle";
 		}
+		else if(isMethodIgnoringParameters(
+			node,
+			"android.content.res.Resources",
+			new String[]{"obtainTypedArray","obtainAttributes","obtainStyledAttributes"})
+		){
+			return "recycle";
+		}
 		else if(isMethod(
 			node,
 			"android.view.VelocityTracker",
