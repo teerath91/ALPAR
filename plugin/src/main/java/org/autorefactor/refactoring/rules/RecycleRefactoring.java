@@ -72,6 +72,9 @@ import org.autorefactor.refactoring.Refactorings;
  * TODO Track local variables. E.g., when a TypedArray a is assigned to variable b,
  * release() should be called only in one variable. 
  * TODO (low priority) check whether resources are being used after release.
+ * TODO add support for FragmentTransaction.beginTransaction(). It can use method
+ * chaining (which means local variable might not be present) and it can be released
+ * by two methods: commit() and commitAllowingStateLoss()
  */
 
 /** See {@link #getDescription()} method. */
