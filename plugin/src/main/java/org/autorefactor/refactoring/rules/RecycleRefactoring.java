@@ -103,33 +103,45 @@ public class RecycleRefactoring extends AbstractRefactoringRule {
                 findImplementedType(declaringClazz, typeQualifiedName);
         return instanceOf(declaringClazz, typeQualifiedName);
 	}
+	
+	private static boolean isMethodIgnoringParameters(MethodInvocation node,
+			String typeQualifiedName, String[] methodNames){
+		boolean isSameMethod;
+		for(String methodName: methodNames){
+			isSameMethod = isMethodIgnoringParameters(node, typeQualifiedName, methodName);
+			if(isSameMethod){
+				return true;
+			}
+		}
+		return false;
+	}
 
 	private String methodNameToCleanupResource(MethodInvocation node){
-		if(isMethod(
+		if(isMethodIgnoringParameters(
 			node,
 			"android.database.sqlite.SQLiteDatabase",
-			"query", "java.lang.String","java.lang.String[]","java.lang.String","java.lang.String[]", "java.lang.String","java.lang.String","java.lang.String")
+			new String[]{"query","rawQuery","queryWithFactory","rawQueryWithFactory"})
 		){
 			return "close";
 		}
-		else if(isMethod(
+		else if(isMethodIgnoringParameters(
 			node,
 			"android.content.ContentProvider",
-			"query", "android.net.Uri","java.lang.String[]","java.lang.String","java.lang.String[]", "java.lang.String")
+			new String[]{"query","rawQuery","queryWithFactory","rawQueryWithFactory"})
 		){
 			return "close";
 		}
-		else if(isMethod(
+		else if(isMethodIgnoringParameters(
 			node,
 			"android.content.ContentResolver",
-			"query", "android.net.Uri","java.lang.String[]","java.lang.String","java.lang.String[]", "java.lang.String")
+			new String[]{"query","rawQuery","queryWithFactory","rawQueryWithFactory"})
 		){
 			return "close";
 		}
-		else if(isMethod(
+		else if(isMethodIgnoringParameters(
 			node,
 			"android.content.ContentProviderClient",
-			"query", "android.net.Uri","java.lang.String[]","java.lang.String","java.lang.String[]", "java.lang.String")
+			new String[]{"query","rawQuery","queryWithFactory","rawQueryWithFactory"})
 		){
 			return "close";
 		}
