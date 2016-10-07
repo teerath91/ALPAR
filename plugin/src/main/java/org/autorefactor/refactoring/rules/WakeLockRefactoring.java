@@ -63,7 +63,6 @@ public class WakeLockRefactoring extends AbstractRefactoringRule {
 
 	@Override
 	public String getDescription() {
-		// TODO Auto-generated method stub
 		return "Failing to release a wakelock properly can keep the Android device in a high "
 				+ "power mode, which reduces battery life. There are several causes of this, such "
 				+ "as releasing the wake lock in onDestroy() instead of in onPause(), failing to "

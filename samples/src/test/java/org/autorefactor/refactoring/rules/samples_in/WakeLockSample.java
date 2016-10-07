@@ -11,7 +11,6 @@ public class WakeLockSample {
 		
 		@Override
 		protected void onCreate(Bundle savedInstanceState) {
-			// TODO Auto-generated method stub
 			super.onCreate(savedInstanceState);
 
 			PowerManager pm = (PowerManager)this.getSystemService(Context.POWER_SERVICE);
@@ -36,7 +35,6 @@ public class WakeLockSample {
 		
 		@Override
 		protected void onCreate(Bundle savedInstanceState) {
-			// TODO Auto-generated method stub
 			super.onCreate(savedInstanceState);
 
 			PowerManager pm = (PowerManager)this.getSystemService(Context.POWER_SERVICE);
@@ -56,7 +54,6 @@ public class WakeLockSample {
 		
 		@Override
 		protected void onCreate(Bundle savedInstanceState) {
-			// TODO Auto-generated method stub
 			super.onCreate(savedInstanceState);
 
 			PowerManager pm = (PowerManager)this.getSystemService(Context.POWER_SERVICE);
@@ -74,7 +71,6 @@ public class WakeLockSample {
 		
 		@Override
 		protected void onCreate(Bundle savedInstanceState) {
-			// TODO Auto-generated method stub
 			super.onCreate(savedInstanceState);
 
 			PowerManager pm = (PowerManager)this.getSystemService(Context.POWER_SERVICE);
