@@ -104,7 +104,7 @@ public class RecycleRefactoring extends AbstractRefactoringRule {
         return instanceOf(declaringClazz, typeQualifiedName);
 	}
 
-	private String doesMethodReturnCursor(MethodInvocation node){
+	private String methodNameToCleanupResource(MethodInvocation node){
 		if(isMethod(
 			node,
 			"android.database.sqlite.SQLiteDatabase",
@@ -190,7 +190,7 @@ public class RecycleRefactoring extends AbstractRefactoringRule {
     public boolean visit(MethodInvocation node) {
 		final ASTBuilder b = this.ctx.getASTBuilder();
 		final Refactorings r = this.ctx.getRefactorings();
-		String recycleMethodName = doesMethodReturnCursor(node);
+		String recycleMethodName = methodNameToCleanupResource(node);
 		if(recycleMethodName != null){
 			SimpleName cursorExpression = null;
 			ASTNode variableAssignmentNode = null;
@@ -331,7 +331,7 @@ public class RecycleRefactoring extends AbstractRefactoringRule {
 		@Override
         public boolean visit(MethodInvocation node) {
 			return visitor.visit(node);
-		}		
+		}
 	}
 
 }
