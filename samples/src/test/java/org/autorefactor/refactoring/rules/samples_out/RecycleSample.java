@@ -135,4 +135,10 @@ public class RecycleSample {
     		myparcel.recycle();
     	}
     }
+    public class ContentProviderClientTest {
+        public void error1(ContentResolver resolver) {
+            ContentProviderClient client = resolver.acquireContentProviderClient("test");
+            client.release();
+        }
+    }
 }

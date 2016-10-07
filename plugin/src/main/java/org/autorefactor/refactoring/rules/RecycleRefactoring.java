@@ -67,9 +67,11 @@ import org.autorefactor.refactoring.ASTHelper;
 import org.autorefactor.refactoring.Refactorings;
 
 /* 
+ * TODO when the last use of resource is as arg of a method invocation,
+ * it should be assumed that the given method will take care of the release.  
  * TODO Track local variables. E.g., when a TypedArray a is assigned to variable b,
  * release() should be called only in one variable. 
- * TODO (low priority) check whether resources are being used after release. 
+ * TODO (low priority) check whether resources are being used after release.
  */
 
 /** See {@link #getDescription()} method. */
@@ -194,7 +196,14 @@ public class RecycleRefactoring extends AbstractRefactoringRule {
 		){
 			return "recycle";
 		}
-		
+
+		else if(isMethodIgnoringParameters(
+			node,
+			"android.content.ContentResolver",
+			"acquireContentProviderClient")
+		){
+			return "release";
+		}
 		return null;
 	}
 	
