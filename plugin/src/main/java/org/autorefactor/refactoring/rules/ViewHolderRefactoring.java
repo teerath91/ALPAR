@@ -46,6 +46,7 @@ import org.eclipse.jdt.core.dom.Modifier.ModifierKeyword;
 import org.eclipse.jdt.core.dom.NormalAnnotation;
 import org.eclipse.jdt.core.dom.PostfixExpression;
 import org.eclipse.jdt.core.dom.PrefixExpression;
+import org.eclipse.jdt.core.dom.ReturnStatement;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.StructuralPropertyDescriptor;
@@ -148,8 +149,11 @@ public class ViewHolderRefactoring extends AbstractRefactoringRule {
 						}
 					}
 					r.remove(visitor.viewAssignmentStatement);
-					
-					return VISIT_SUBTREE;
+					if(visitor.returnStatement!=null){
+						r.insertAfter(b.return0(b.copy(visitor.viewVariable)), visitor.returnStatement);
+						r.remove(visitor.returnStatement);
+					}
+					return DO_NOT_VISIT_SUBTREE;
 				}
 			}
 		}
@@ -163,6 +167,7 @@ public class ViewHolderRefactoring extends AbstractRefactoringRule {
 		public Statement viewAssignmentStatement; 
 		public VariableDeclarationFragment viewVariableDeclarationFragment = null;
 		public Assignment viewVariableAssignment = null;
+		public  ReturnStatement returnStatement = null;
 		GetViewVisitor(){
 		}
 		
@@ -193,6 +198,11 @@ public class ViewHolderRefactoring extends AbstractRefactoringRule {
 				}
 				return DO_NOT_VISIT_SUBTREE;
 			}
+			return VISIT_SUBTREE;
+		}
+		
+		public boolean visit(ReturnStatement node) {
+			this.returnStatement = node;
 			return VISIT_SUBTREE;
 		}
 		

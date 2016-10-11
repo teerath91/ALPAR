@@ -50,10 +50,10 @@ public abstract class ViewHolderSample extends BaseAdapter {
     	public View getView(int position, View convertView, ViewGroup parent) {
     		View v = mInflater.inflate(R.layout.your_layout, null);
     		
-    		TextView text = (TextView) convertView.findViewById(R.id.text);
+    		TextView text = (TextView) v.findViewById(R.id.text);
     		text.setText("Position " + position);
     		
-    		return v;
+    		return convertView;
     	}
     }
     

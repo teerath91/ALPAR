@@ -53,7 +53,7 @@ public abstract class ViewHolderSample extends BaseAdapter {
         		convertView = mInflater.inflate(R.layout.your_layout, null);
         	}
         	View v = convertView;
-            TextView text = (TextView) convertView.findViewById(R.id.text);
+            TextView text = (TextView) v.findViewById(R.id.text);
             text.setText("Position " + position);
             
             return v;
