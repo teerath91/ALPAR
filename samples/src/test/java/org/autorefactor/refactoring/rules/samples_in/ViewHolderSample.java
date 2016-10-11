@@ -43,6 +43,20 @@ public abstract class ViewHolderSample extends BaseAdapter {
         }
     }
     
+    public static class Adapter3 extends ViewHolderSample {
+    	LayoutInflater mInflater;
+    	
+    	@Override
+    	public View getView(int position, View convertView, ViewGroup parent) {
+    		View v = mInflater.inflate(R.layout.your_layout, null);
+    		
+    		TextView text = (TextView) convertView.findViewById(R.id.text);
+    		text.setText("Position " + position);
+    		
+    		return v;
+    	}
+    }
+    
     private static class R {
         public static class layout {
             public static final int your_layout = 2;

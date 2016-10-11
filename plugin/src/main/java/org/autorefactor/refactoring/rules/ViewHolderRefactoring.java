@@ -52,6 +52,7 @@ import org.eclipse.jdt.core.dom.StructuralPropertyDescriptor;
 import org.eclipse.jdt.core.dom.SuperMethodInvocation;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
+import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.eclipse.jdt.core.dom.rewrite.ASTRewrite;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.internal.corext.dom.ASTNodes;
@@ -101,7 +102,6 @@ public class ViewHolderRefactoring extends AbstractRefactoringRule {
 		final Refactorings r = this.ctx.getRefactorings();
 		IMethodBinding methodBinding = node.resolveBinding();
 		
-		
 		if(methodBinding!= null &&
 			isMethod(
 					methodBinding,
@@ -124,17 +124,29 @@ public class ViewHolderRefactoring extends AbstractRefactoringRule {
 			    	InfixExpression infixExpression = b.getAST().newInfixExpression();
 			    	infixExpression.setOperator(InfixExpression.Operator.EQUALS);
 
-			    	infixExpression.setLeftOperand(b.simpleName(visitor.viewVariable.getIdentifier()));
+			    	infixExpression.setLeftOperand(b.simpleName("convertView"));
 			    	infixExpression.setRightOperand(b.getAST().newNullLiteral());
 					ifStatement.setExpression(infixExpression);
 					//then
-					ifStatement.setThenStatement(b.block((Statement)ASTNode.copySubtree(b.getAST(), visitor.viewAssignmentStatement)));
-					//else
+					Assignment assignment = b.assign(b.simpleName("convertView"), Assignment.Operator.ASSIGN, b.copy(visitor.getInflateExpression()));
+					ifStatement.setThenStatement(b.block(b.getAST().newExpressionStatement(assignment)));
 //					r.insertAt(ifStatement,
 //							node.getBody().statements().size(),
 //    						Block.STATEMENTS_PROPERTY,
 //    						node.getBody());
-					r.insertAfter(ifStatement, visitor.viewAssignmentStatement);
+					r.insertBefore(ifStatement, visitor.viewAssignmentStatement);
+					if(!"convertView".equals(visitor.viewVariable.getIdentifier())){
+						Statement assignConvertViewToView = null;
+						if(visitor.viewVariableDeclarationFragment != null){
+							assignConvertViewToView = b.declare(visitor.viewVariable.resolveTypeBinding().getName(), b.copy(visitor.viewVariable), b.simpleName("convertView"));
+						}
+						else if(visitor.viewVariableAssignment != null){
+							assignConvertViewToView = b.getAST().newExpressionStatement(b.assign(b.copy(visitor.viewVariable), Assignment.Operator.ASSIGN, b.simpleName("convertView")));
+						}
+						if(assignConvertViewToView != null){
+							r.insertBefore(assignConvertViewToView, visitor.viewAssignmentStatement);
+						}
+					}
 					r.remove(visitor.viewAssignmentStatement);
 					
 					return VISIT_SUBTREE;
@@ -148,8 +160,9 @@ public class ViewHolderRefactoring extends AbstractRefactoringRule {
 	public class GetViewVisitor extends ASTVisitor {
 		public boolean usesConvertView= false;
 		public SimpleName viewVariable = null;
-		public ExpressionStatement viewAssignmentStatement; 
-		
+		public Statement viewAssignmentStatement; 
+		public VariableDeclarationFragment viewVariableDeclarationFragment = null;
+		public Assignment viewVariableAssignment = null;
 		GetViewVisitor(){
 		}
 		
@@ -166,13 +179,13 @@ public class ViewHolderRefactoring extends AbstractRefactoringRule {
 		
 		public boolean visit(MethodInvocation node) {
 			if(isMethod(node, "android.view.LayoutInflater", "inflate", "int", "android.view.ViewGroup")){
-				VariableDeclarationFragment viewVariableDeclarationFragment = (VariableDeclarationFragment) ASTNodes.getParent(node, ASTNode.VARIABLE_DECLARATION_FRAGMENT);
+				this.viewVariableDeclarationFragment = (VariableDeclarationFragment) ASTNodes.getParent(node, ASTNode.VARIABLE_DECLARATION_FRAGMENT);
 				if(viewVariableDeclarationFragment!=null){
 					this.viewVariable = viewVariableDeclarationFragment.getName();
-					this.viewAssignmentStatement = (ExpressionStatement) ASTNodes.getParent(viewVariableDeclarationFragment, ASTNode.EXPRESSION_STATEMENT);
+					this.viewAssignmentStatement = (Statement) ASTNodes.getParent(viewVariableDeclarationFragment, ASTNode.VARIABLE_DECLARATION_STATEMENT);
 				}
 				else{
-					Assignment viewVariableAssignment = (Assignment) ASTNodes.getParent(node, ASTNode.ASSIGNMENT);
+					this.viewVariableAssignment = (Assignment) ASTNodes.getParent(node, ASTNode.ASSIGNMENT);
 					if(viewVariableAssignment!=null){
 						this.viewVariable = (SimpleName) viewVariableAssignment.getLeftHandSide();
 						this.viewAssignmentStatement = (ExpressionStatement) ASTNodes.getParent(viewVariableAssignment, ASTNode.EXPRESSION_STATEMENT);
@@ -189,6 +202,17 @@ public class ViewHolderRefactoring extends AbstractRefactoringRule {
 			}
 			return false;
 		}
+		
+		public Expression getInflateExpression(){
+			if(this.viewVariableDeclarationFragment != null){
+				return this.viewVariableDeclarationFragment.getInitializer();
+			}
+			else if(this.viewVariableAssignment != null){
+				return this.viewVariableAssignment.getRightHandSide();
+			}
+			return null;
+		}
+		
 	}
 
     
