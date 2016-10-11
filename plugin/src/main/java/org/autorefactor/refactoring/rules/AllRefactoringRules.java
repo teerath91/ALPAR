@@ -115,6 +115,7 @@ public final class AllRefactoringRules {
                 new RemoveEmptyLinesRefactoring(),
                 new WakeLockRefactoring(),
                 new RecycleRefactoring(),
+                new ViewHolderRefactoring(),
                 new SwitchRefactoring());
     }
 
