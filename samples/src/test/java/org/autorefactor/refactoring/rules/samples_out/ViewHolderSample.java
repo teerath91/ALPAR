@@ -38,6 +38,7 @@ public abstract class ViewHolderSample extends BaseAdapter {
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
+        	ViewHolderItem viewHolderItem;
         	if (convertView == null) {
         		convertView = mInflater.inflate(R.layout.your_layout, null);
         	}
@@ -57,6 +58,7 @@ public abstract class ViewHolderSample extends BaseAdapter {
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
+        	ViewHolderItem viewHolderItem;
         	if (convertView == null) {
         		convertView = mInflater.inflate(R.layout.your_layout, null);
         	}

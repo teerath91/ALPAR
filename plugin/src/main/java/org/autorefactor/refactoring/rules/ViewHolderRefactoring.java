@@ -148,7 +148,7 @@ public class ViewHolderRefactoring extends AbstractRefactoringRule {
 							r.insertBefore(assignConvertViewToView, visitor.viewAssignmentStatement);
 						}
 					}
-					r.remove(visitor.viewAssignmentStatement);
+					
 					// make sure method returns the view to be reused DELETEME
 					if(visitor.returnStatement!=null){
 						r.insertAfter(b.return0(b.copy(visitor.viewVariable)), visitor.returnStatement);
@@ -158,8 +158,8 @@ public class ViewHolderRefactoring extends AbstractRefactoringRule {
 					//Optimize findViewById calls
 					FindViewByIdVisitor findViewByIdVisitor = new FindViewByIdVisitor();
 					body.accept(findViewByIdVisitor);
-					//create ViewHolderItem class if necessary
 					if(findViewByIdVisitor.items.size() > 0){
+						//create ViewHolderItem class
 						TypeDeclaration viewHolderItemDeclaration = b.getAST().newTypeDeclaration();
 						viewHolderItemDeclaration.setName(b.simpleName("ViewHolderItem"));
 						List<ASTNode> viewItemsDeclarations = viewHolderItemDeclaration.bodyDeclarations();
@@ -182,8 +182,16 @@ public class ViewHolderRefactoring extends AbstractRefactoringRule {
 							b.getAST().newModifier(ModifierKeyword.STATIC_KEYWORD)
 						);
 						r.insertBefore(viewHolderItemDeclaration, node);
+						// create viewhHolderItem object
+						VariableDeclarationStatement viewHolderItemVariableDeclaration = b.declare("ViewHolderItem", b.simpleName("viewHolderItem"), null);
+						r.insertAt(viewHolderItemVariableDeclaration, 0, Block.STATEMENTS_PROPERTY, body); 
+						//  Assign findViewById to ViewHolderItem
+						
+//						for(FindViewByIdVisitor.FindViewByIdItem item : findViewByIdVisitor.items){
+//							b.assign(lhs, Assignment.Operator.ASSIGN, b.copy(item.findViewByIdExpression))
+//						}
 					}
-					
+					r.remove(visitor.viewAssignmentStatement);
 					return DO_NOT_VISIT_SUBTREE;
 				}
 			}
