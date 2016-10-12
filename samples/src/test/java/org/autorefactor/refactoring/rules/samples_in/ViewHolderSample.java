@@ -89,6 +89,7 @@ public abstract class ViewHolderSample extends BaseAdapter {
         }
     }
     
+    /* TODO low priority VieHolder cornercase
     public static class CornerCase extends ViewHolderSample {
         LayoutInflater inflater;
 
@@ -100,7 +101,7 @@ public abstract class ViewHolderSample extends BaseAdapter {
             rootView = inflater.inflate(android.R.layout.simple_list_item_1, parent, false);
             return rootView;
         }
-    }
+    }*/
     
     private static class R {
         public static class layout {
