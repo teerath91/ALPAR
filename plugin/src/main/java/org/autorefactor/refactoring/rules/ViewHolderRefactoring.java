@@ -36,6 +36,7 @@ import org.eclipse.jdt.core.dom.BodyDeclaration;
 import org.eclipse.jdt.core.dom.ChildListPropertyDescriptor;
 import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.ExpressionStatement;
+import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.IfStatement;
@@ -63,6 +64,7 @@ import com.sun.jndi.cosnaming.RemoteToCorba;
 import static org.autorefactor.refactoring.ASTHelper.*;
 import static org.eclipse.jdt.core.dom.ASTNode.*;
 
+import java.util.LinkedList;
 import java.util.List;
 
 import org.autorefactor.refactoring.ASTBuilder;
@@ -147,11 +149,41 @@ public class ViewHolderRefactoring extends AbstractRefactoringRule {
 						}
 					}
 					r.remove(visitor.viewAssignmentStatement);
-					// make sure method returns the view to be reused
+					// make sure method returns the view to be reused DELETEME
 					if(visitor.returnStatement!=null){
 						r.insertAfter(b.return0(b.copy(visitor.viewVariable)), visitor.returnStatement);
 						r.remove(visitor.returnStatement);
 					}
+					
+					//Optimize findViewById calls
+					FindViewByIdVisitor findViewByIdVisitor = new FindViewByIdVisitor();
+					body.accept(findViewByIdVisitor);
+					//create ViewHolderItem class if necessary
+					if(findViewByIdVisitor.items.size() > 0){
+						TypeDeclaration viewHolderItemDeclaration = b.getAST().newTypeDeclaration();
+						viewHolderItemDeclaration.setName(b.simpleName("ViewHolderItem"));
+						List<ASTNode> viewItemsDeclarations = viewHolderItemDeclaration.bodyDeclarations();
+						for(FindViewByIdVisitor.FindViewByIdItem item : findViewByIdVisitor.items){
+							
+							VariableDeclarationFragment declarationFragment = b.getAST().newVariableDeclarationFragment();
+							SimpleName simpleName = b.simpleName(item.variable.getIdentifier());
+							declarationFragment.setName(simpleName);
+							FieldDeclaration fieldDeclaration = b.getAST().newFieldDeclaration(declarationFragment);
+							fieldDeclaration.setType(
+								b.getAST().newSimpleType(
+									b.simpleName(item.variable.resolveTypeBinding().getName())
+								)
+							);
+							viewItemsDeclarations.add(
+								fieldDeclaration
+							);
+						}
+						viewHolderItemDeclaration.modifiers().add(
+							b.getAST().newModifier(ModifierKeyword.STATIC_KEYWORD)
+						);
+						r.insertBefore(viewHolderItemDeclaration, node);
+					}
+					
 					return DO_NOT_VISIT_SUBTREE;
 				}
 			}
@@ -242,6 +274,53 @@ public class ViewHolderRefactoring extends AbstractRefactoringRule {
 		}
 		
 	}
-
+	
+	
+	static class FindViewByIdVisitor extends ASTVisitor{
+		public List<FindViewByIdItem> items = new LinkedList<FindViewByIdItem>();
+		
+		FindViewByIdVisitor(){
+		}
+		
+		static class FindViewByIdItem{
+			SimpleName variable;
+			Expression findViewByIdExpression;
+			Statement findViewByIdAssignment;
+			VariableDeclarationFragment findViewByIdDeclarationFragment;
+			Assignment findViewByIdVariableAssignment;
+			
+			FindViewByIdItem(ASTNode node){
+				this.setAssignment(node);
+			}
+			
+			public void setAssignment(ASTNode node){
+				this.findViewByIdDeclarationFragment = (VariableDeclarationFragment) ASTNodes.getParent(node, ASTNode.VARIABLE_DECLARATION_FRAGMENT);
+				if(this.findViewByIdDeclarationFragment!=null){
+					this.variable = this.findViewByIdDeclarationFragment.getName();
+					this.findViewByIdAssignment = (Statement) ASTNodes.getParent(this.findViewByIdDeclarationFragment, ASTNode.VARIABLE_DECLARATION_STATEMENT);
+					this.findViewByIdExpression = this.findViewByIdDeclarationFragment.getInitializer();
+				}
+				else{
+					this.findViewByIdVariableAssignment = (Assignment) ASTNodes.getParent(node, ASTNode.ASSIGNMENT);
+					if(this.findViewByIdVariableAssignment!=null){
+						this.variable = (SimpleName) this.findViewByIdVariableAssignment.getLeftHandSide();
+						this.findViewByIdAssignment = (ExpressionStatement) ASTNodes.getParent(this.findViewByIdVariableAssignment, ASTNode.EXPRESSION_STATEMENT);
+						this.findViewByIdExpression = this.findViewByIdVariableAssignment.getRightHandSide();
+					}
+				}
+			}
+		}
+		
+	    @Override
+	    public boolean visit(MethodInvocation node) {
+			
+			if(isMethod(node, "android.view.View", "findViewById", "int")){
+				FindViewByIdItem item = new FindViewByIdItem(node);
+				items.add(item);
+			}
+			
+			return VISIT_SUBTREE;
+	    }
+	}
     
 }
