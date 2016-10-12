@@ -47,8 +47,7 @@ import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
-
-import com.sun.jndi.cosnaming.RemoteToCorba;
+import org.eclipse.jdt.internal.corext.dom.ASTNodes;
 
 import static org.autorefactor.refactoring.ASTHelper.*;
 import static org.eclipse.jdt.core.dom.ASTNode.*;
@@ -57,9 +56,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.autorefactor.refactoring.ASTBuilder;
-import org.autorefactor.refactoring.ASTHelper;
 import org.autorefactor.refactoring.Refactorings;
-import org.autorefactor.refactoring.rules.RecycleRefactoring.VisitorDecorator.NopVisitor;
 
 
 /** See {@link #getDescription()} method. */
