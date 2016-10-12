@@ -201,6 +201,8 @@ public class ViewHolderRefactoring extends AbstractRefactoringRule {
 							
 							thenBlock.statements().add(b.getAST().newExpressionStatement(itemAssignment));
 						}
+						MethodInvocation setTagInvocation = b.invoke("convertView", "setTag", b.simpleName("viewHolderItem"));
+						thenBlock.statements().add(b.getAST().newExpressionStatement(setTagInvocation));
 						//save store viewHolderItem in object
 						
 					}
