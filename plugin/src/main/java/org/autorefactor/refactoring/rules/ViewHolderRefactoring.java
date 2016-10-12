@@ -44,9 +44,11 @@ import org.eclipse.jdt.core.dom.InfixExpression;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.Modifier;
 import org.eclipse.jdt.core.dom.Modifier.ModifierKeyword;
+import org.eclipse.jdt.core.dom.Name;
 import org.eclipse.jdt.core.dom.NormalAnnotation;
 import org.eclipse.jdt.core.dom.PostfixExpression;
 import org.eclipse.jdt.core.dom.PrefixExpression;
+import org.eclipse.jdt.core.dom.QualifiedName;
 import org.eclipse.jdt.core.dom.ReturnStatement;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.Statement;
@@ -132,7 +134,8 @@ public class ViewHolderRefactoring extends AbstractRefactoringRule {
 					ifStatement.setExpression(infixExpression);
 					//then
 					Assignment assignment = b.assign(b.simpleName("convertView"), Assignment.Operator.ASSIGN, b.copy(visitor.getInflateExpression()));
-					ifStatement.setThenStatement(b.block(b.getAST().newExpressionStatement(assignment)));
+					Block thenBlock = b.block(b.getAST().newExpressionStatement(assignment));
+					ifStatement.setThenStatement(thenBlock);
 					r.insertBefore(ifStatement, visitor.viewAssignmentStatement);
 					
 					// assign to local view variable when necessary
@@ -184,12 +187,22 @@ public class ViewHolderRefactoring extends AbstractRefactoringRule {
 						r.insertBefore(viewHolderItemDeclaration, node);
 						// create viewhHolderItem object
 						VariableDeclarationStatement viewHolderItemVariableDeclaration = b.declare("ViewHolderItem", b.simpleName("viewHolderItem"), null);
-						r.insertAt(viewHolderItemVariableDeclaration, 0, Block.STATEMENTS_PROPERTY, body); 
+						r.insertAt(viewHolderItemVariableDeclaration, 0, Block.STATEMENTS_PROPERTY, body);
+						//initialize viewHolderItem
+						Assignment viewHolderItemInitialization = b.assign(b.simpleName("viewHolderItem"), Assignment.Operator.ASSIGN, b.new0("ViewHolderItem"));
+						thenBlock.statements().add(b.getAST().newExpressionStatement(viewHolderItemInitialization));
 						//  Assign findViewById to ViewHolderItem
+						for(FindViewByIdVisitor.FindViewByIdItem item : findViewByIdVisitor.items){
+							Name qualifier = b.name("viewHolderItem");
+							//ensure we are accessing to convertView object
+							QualifiedName qualifiedName = b.getAST().newQualifiedName(qualifier, b.copy(item.variable));
+							item.findViewByIdInvocation.setExpression(b.simpleName("convertView"));
+							Assignment itemAssignment = b.assign(qualifiedName, Assignment.Operator.ASSIGN, (Expression)ASTNode.copySubtree(b.getAST(), item.findViewByIdExpression));
+							
+							thenBlock.statements().add(b.getAST().newExpressionStatement(itemAssignment));
+						}
+						//save store viewHolderItem in object
 						
-//						for(FindViewByIdVisitor.FindViewByIdItem item : findViewByIdVisitor.items){
-//							b.assign(lhs, Assignment.Operator.ASSIGN, b.copy(item.findViewByIdExpression))
-//						}
 					}
 					r.remove(visitor.viewAssignmentStatement);
 					return DO_NOT_VISIT_SUBTREE;
@@ -296,12 +309,14 @@ public class ViewHolderRefactoring extends AbstractRefactoringRule {
 			Statement findViewByIdAssignment;
 			VariableDeclarationFragment findViewByIdDeclarationFragment;
 			Assignment findViewByIdVariableAssignment;
+			MethodInvocation findViewByIdInvocation;
 			
-			FindViewByIdItem(ASTNode node){
+			FindViewByIdItem(MethodInvocation node){
 				this.setAssignment(node);
 			}
 			
-			public void setAssignment(ASTNode node){
+			public void setAssignment(MethodInvocation node){
+				this.findViewByIdInvocation = node;
 				this.findViewByIdDeclarationFragment = (VariableDeclarationFragment) ASTNodes.getParent(node, ASTNode.VARIABLE_DECLARATION_FRAGMENT);
 				if(this.findViewByIdDeclarationFragment!=null){
 					this.variable = this.findViewByIdDeclarationFragment.getName();

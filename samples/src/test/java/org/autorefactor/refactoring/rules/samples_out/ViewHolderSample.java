@@ -41,6 +41,8 @@ public abstract class ViewHolderSample extends BaseAdapter {
         	ViewHolderItem viewHolderItem;
         	if (convertView == null) {
         		convertView = mInflater.inflate(R.layout.your_layout, null);
+        		viewHolderItem = new ViewHolderItem();
+        		viewHolderItem.text = (TextView) convertView.findViewById(R.id.text);
         	}
             TextView text = (TextView) convertView.findViewById(R.id.text);
             text.setText("Position " + position);
@@ -61,6 +63,8 @@ public abstract class ViewHolderSample extends BaseAdapter {
         	ViewHolderItem viewHolderItem;
         	if (convertView == null) {
         		convertView = mInflater.inflate(R.layout.your_layout, null);
+        		viewHolderItem = new ViewHolderItem();
+        		viewHolderItem.text = (TextView) convertView.findViewById(R.id.text);
         	}
         	View v = convertView;
             TextView text = (TextView) v.findViewById(R.id.text);
