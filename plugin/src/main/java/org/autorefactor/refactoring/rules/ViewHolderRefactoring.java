@@ -193,13 +193,16 @@ public class ViewHolderRefactoring extends AbstractRefactoringRule {
 						thenBlock.statements().add(b.getAST().newExpressionStatement(viewHolderItemInitialization));
 						//  Assign findViewById to ViewHolderItem
 						for(FindViewByIdVisitor.FindViewByIdItem item : findViewByIdVisitor.items){
-							Name qualifier = b.name("viewHolderItem");
 							//ensure we are accessing to convertView object
-							QualifiedName qualifiedName = b.getAST().newQualifiedName(qualifier, b.copy(item.variable));
+							QualifiedName qualifiedName = b.getAST().newQualifiedName(b.name("viewHolderItem"), b.simpleName(item.variable.getIdentifier()));
 							item.findViewByIdInvocation.setExpression(b.simpleName("convertView"));
 							Assignment itemAssignment = b.assign(qualifiedName, Assignment.Operator.ASSIGN, (Expression)ASTNode.copySubtree(b.getAST(), item.findViewByIdExpression));
 							
 							thenBlock.statements().add(b.getAST().newExpressionStatement(itemAssignment));
+							
+							//replace previous fidnviewbyid with accesses to viewHolderItem
+							QualifiedName viewHolderItemFieldAccessQualifiedName = b.getAST().newQualifiedName(b.name("viewHolderItem"), b.simpleName(item.variable.getIdentifier()));
+							r.replace(item.findViewByIdExpression, b.copy(qualifiedName));
 						}
 						//store viewHolderItem in convertView
 						MethodInvocation setTagInvocation = b.invoke("convertView", "setTag", b.simpleName("viewHolderItem"));
@@ -211,6 +214,7 @@ public class ViewHolderRefactoring extends AbstractRefactoringRule {
 								Assignment.Operator.ASSIGN,
 								b.cast("ViewHolderItem", b.invoke("convertView", "getTag"))
 						))));
+						
 					}
 					r.remove(visitor.viewAssignmentStatement);
 					return DO_NOT_VISIT_SUBTREE;

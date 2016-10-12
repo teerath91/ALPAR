@@ -47,7 +47,7 @@ public abstract class ViewHolderSample extends BaseAdapter {
         	} else {
         		viewHolderItem = (ViewHolderItem) convertView.getTag();
         	}
-            TextView text = (TextView) convertView.findViewById(R.id.text);
+            TextView text = viewHolderItem.text;
             text.setText("Position " + position);
 
             return convertView;
@@ -73,7 +73,7 @@ public abstract class ViewHolderSample extends BaseAdapter {
         		viewHolderItem = (ViewHolderItem) convertView.getTag();
         	}
         	View v = convertView;
-            TextView text = (TextView) v.findViewById(R.id.text);
+            TextView text = viewHolderItem.text;
             text.setText("Position " + position);
             
             return v;
