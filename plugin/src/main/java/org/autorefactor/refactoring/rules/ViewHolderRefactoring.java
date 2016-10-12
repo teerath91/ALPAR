@@ -119,23 +119,21 @@ public class ViewHolderRefactoring extends AbstractRefactoringRule {
 					visitor.viewVariable != null &&
 					!visitor.isInflateInsideIf()){
 					// Transform tree
+					
 					//Create If statement
 			    	IfStatement ifStatement = b.getAST().newIfStatement();
 			    	// test-clause
 			    	InfixExpression infixExpression = b.getAST().newInfixExpression();
 			    	infixExpression.setOperator(InfixExpression.Operator.EQUALS);
-
 			    	infixExpression.setLeftOperand(b.simpleName("convertView"));
 			    	infixExpression.setRightOperand(b.getAST().newNullLiteral());
 					ifStatement.setExpression(infixExpression);
 					//then
 					Assignment assignment = b.assign(b.simpleName("convertView"), Assignment.Operator.ASSIGN, b.copy(visitor.getInflateExpression()));
 					ifStatement.setThenStatement(b.block(b.getAST().newExpressionStatement(assignment)));
-//					r.insertAt(ifStatement,
-//							node.getBody().statements().size(),
-//    						Block.STATEMENTS_PROPERTY,
-//    						node.getBody());
 					r.insertBefore(ifStatement, visitor.viewAssignmentStatement);
+					
+					// assign to local view variable when necessary
 					if(!"convertView".equals(visitor.viewVariable.getIdentifier())){
 						Statement assignConvertViewToView = null;
 						if(visitor.viewVariableDeclarationFragment != null){
@@ -149,6 +147,7 @@ public class ViewHolderRefactoring extends AbstractRefactoringRule {
 						}
 					}
 					r.remove(visitor.viewAssignmentStatement);
+					// make sure method returns the view to be reused
 					if(visitor.returnStatement!=null){
 						r.insertAfter(b.return0(b.copy(visitor.viewVariable)), visitor.returnStatement);
 						r.remove(visitor.returnStatement);
