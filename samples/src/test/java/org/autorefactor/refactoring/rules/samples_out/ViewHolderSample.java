@@ -59,7 +59,6 @@ public abstract class ViewHolderSample extends BaseAdapter {
             return v;
         }
     }
-    
 
 	public static class Adapter5 extends ViewHolderSample {
         LayoutInflater mInflater;

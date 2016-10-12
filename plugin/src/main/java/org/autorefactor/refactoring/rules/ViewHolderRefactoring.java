@@ -207,7 +207,16 @@ public class ViewHolderRefactoring extends AbstractRefactoringRule {
 		
 		public boolean isInflateInsideIf(){
 			if(this.viewAssignmentStatement != null){
-				return ASTNodes.getParent(this.viewAssignmentStatement, ASTNode.IF_STATEMENT) != null;
+				if(ASTNodes.getParent(this.viewAssignmentStatement, ASTNode.IF_STATEMENT) != null){
+					return true;
+				}
+				else{
+					//check whether inflate is inside a conditional assignment
+					Expression inflateExpression = this.getInflateExpression();
+					if(inflateExpression!=null && inflateExpression.getNodeType() == ASTNode.CONDITIONAL_EXPRESSION){
+						return true;
+					}
+				}
 			}
 			return false;
 		}
