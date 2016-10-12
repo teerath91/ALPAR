@@ -159,6 +159,13 @@ public class ViewHolderRefactoring extends AbstractRefactoringRule {
     	return VISIT_SUBTREE;
     }
     
+    public static boolean isInflateMethod(MethodInvocation node){
+    	return 
+    			isMethod(node, "android.view.LayoutInflater", "inflate", "int", "android.view.ViewGroup")||
+    			isMethod(node, "android.view.LayoutInflater", "inflate", "int", "android.view.ViewGroup","boolean")||
+    			isMethod(node, "android.view.LayoutInflater", "inflate", "org.xmlpull.v1.XmlPullParser", "android.view.ViewGroup")||
+    			isMethod(node, "android.view.LayoutInflater", "inflate", "org.xmlpull.v1.XmlPullParser", "android.view.ViewGroup", "boolean");
+	}
     
 	public class GetViewVisitor extends ASTVisitor {
 		public boolean usesConvertView= false;
@@ -182,7 +189,7 @@ public class ViewHolderRefactoring extends AbstractRefactoringRule {
 		}
 		
 		public boolean visit(MethodInvocation node) {
-			if(isMethod(node, "android.view.LayoutInflater", "inflate", "int", "android.view.ViewGroup")){
+			if(isInflateMethod(node)){
 				this.viewVariableDeclarationFragment = (VariableDeclarationFragment) ASTNodes.getParent(node, ASTNode.VARIABLE_DECLARATION_FRAGMENT);
 				if(viewVariableDeclarationFragment!=null){
 					this.viewVariable = viewVariableDeclarationFragment.getName();
