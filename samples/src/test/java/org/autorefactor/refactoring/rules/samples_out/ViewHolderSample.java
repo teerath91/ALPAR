@@ -92,6 +92,19 @@ public abstract class ViewHolderSample extends BaseAdapter {
         }
     }
     
+    public static class CornerCase extends ViewHolderSample {
+        LayoutInflater inflater;
+
+        @Override
+        public View getView(final int position, final View convertView, final ViewGroup parent) {
+            View rootView = convertView;
+            if (rootView != null)
+                return rootView;
+            rootView = inflater.inflate(android.R.layout.simple_list_item_1, parent, false);
+            return rootView;
+        }
+    }
+    
     private static class R {
         public static class layout {
             public static final int your_layout = 2;

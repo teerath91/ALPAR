@@ -217,6 +217,9 @@ public class ViewHolderRefactoring extends AbstractRefactoringRule {
 				if(ASTNodes.getParent(this.viewAssignmentStatement, ASTNode.IF_STATEMENT) != null){
 					return true;
 				}
+				else if(ASTNodes.getParent(this.viewAssignmentStatement, ASTNode.SWITCH_STATEMENT) != null){
+					return true;
+				}
 				else{
 					//check whether inflate is inside a conditional assignment
 					Expression inflateExpression = this.getInflateExpression();
