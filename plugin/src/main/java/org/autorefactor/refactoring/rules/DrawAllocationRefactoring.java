@@ -42,6 +42,7 @@ import org.eclipse.jdt.core.dom.Modifier.ModifierKeyword;
 import org.eclipse.jdt.core.dom.QualifiedName;
 import org.eclipse.jdt.core.dom.ReturnStatement;
 import org.eclipse.jdt.core.dom.SimpleName;
+import org.eclipse.jdt.core.dom.SimpleType;
 import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
@@ -111,16 +112,43 @@ public class DrawAllocationRefactoring extends AbstractRefactoringRule {
 			
 			Expression initializer = node.getInitializer();
 			if(initializer != null){
-				if(initializer.getNodeType() == ASTNode.CLASS_INSTANCE_CREATION){ 
-					Statement declarationStatement = (Statement) ASTNodes.getParent(node, ASTNode.VARIABLE_DECLARATION_STATEMENT);
-					if(declarationStatement!= null){
-						r.insertBefore(b.move(declarationStatement), onDrawDeclaration);						
+				if(initializer.getNodeType() == ASTNode.CLASS_INSTANCE_CREATION){
+					InitializerVisitor initializerVisitor = new InitializerVisitor();
+					initializer.accept(initializerVisitor);
+					if(initializerVisitor.initializerCanBeExtracted){
+						Statement declarationStatement = (Statement) ASTNodes.getParent(node, ASTNode.VARIABLE_DECLARATION_STATEMENT);
+						if(declarationStatement!= null){						
+							r.insertBefore(b.move(declarationStatement), onDrawDeclaration);						
+						}
 					}
 				}
 			}
 			return VISIT_SUBTREE;
 		}
 	}
+	
+	static class InitializerVisitor extends ASTVisitor{
+		public boolean initializerCanBeExtracted=true;
+		
+		@Override
+		public boolean visit(MethodInvocation node) {
+			initializerCanBeExtracted=false;
+			return DO_NOT_VISIT_SUBTREE;
+		}
+		
+		@Override
+		public boolean visit(SimpleType node) {
+			return DO_NOT_VISIT_SUBTREE;
+		}
+		
+		@Override
+		public boolean visit(SimpleName node) {
+			initializerCanBeExtracted=false;
+			return DO_NOT_VISIT_SUBTREE;
+		}
+	}
+	
+	
     
     
 }
