@@ -53,7 +53,7 @@ public abstract class ViewHolderSample extends BaseAdapter {
     		TextView text = (TextView) v.findViewById(R.id.text);
     		text.setText("Position " + position);
     		
-    		return convertView;
+    		return v;
     	}
     }
 

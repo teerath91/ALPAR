@@ -58,6 +58,11 @@ import java.util.List;
 import org.autorefactor.refactoring.ASTBuilder;
 import org.autorefactor.refactoring.Refactorings;
 
+/* 
+ * TODO when findViewById is reusing a local variable,
+ * the viewholderitem will create a new field with duplicate name.
+ * Possible solution: use the id names instead of var names
+ */
 
 /** See {@link #getDescription()} method. */
 public class ViewHolderRefactoring extends AbstractRefactoringRule {
