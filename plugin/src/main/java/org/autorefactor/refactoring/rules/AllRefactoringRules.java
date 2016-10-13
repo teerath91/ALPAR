@@ -116,6 +116,7 @@ public final class AllRefactoringRules {
                 new WakeLockRefactoring(),
                 new RecycleRefactoring(),
                 new ViewHolderRefactoring(),
+                new DrawAllocationRefactoring(),
                 new SwitchRefactoring());
     }
 
