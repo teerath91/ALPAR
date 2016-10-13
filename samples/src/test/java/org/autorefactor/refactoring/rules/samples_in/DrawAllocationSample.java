@@ -44,6 +44,7 @@ public class DrawAllocationSample extends Button {
 
         Integer i2 = new Integer(i);
         Integer i3 = (Integer) new Integer(2);
+        Map<Integer, Object> myOtherMap = new HashMap<Integer, Object>();
 
         // Non-allocations
         super.animate();

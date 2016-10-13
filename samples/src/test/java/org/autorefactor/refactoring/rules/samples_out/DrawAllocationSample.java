@@ -28,6 +28,8 @@ public class DrawAllocationSample extends Button {
 
     Integer i3 = (Integer) new Integer(2);
 
+    Map<Integer, Object> myOtherMap = new HashMap<Integer, Object>();
+
     @Override
     protected void onDraw(android.graphics.Canvas canvas) {
         super.onDraw(canvas);
@@ -52,6 +54,7 @@ public class DrawAllocationSample extends Button {
         // This will involve allocations, but we don't track
         // inter-procedural stuff here
         someOtherMethod();
+        myOtherMap.clear();
     }
     
     void someOtherMethod() {

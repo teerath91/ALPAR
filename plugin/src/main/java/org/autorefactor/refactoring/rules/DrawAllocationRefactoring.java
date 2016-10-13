@@ -33,10 +33,12 @@ import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.Assignment;
 import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.CastExpression;
+import org.eclipse.jdt.core.dom.ClassInstanceCreation;
 import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.ExpressionStatement;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.IMethodBinding;
+import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.InfixExpression;
 import org.eclipse.jdt.core.dom.MethodInvocation;
@@ -59,6 +61,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.autorefactor.refactoring.ASTBuilder;
+import org.autorefactor.refactoring.ASTHelper;
 import org.autorefactor.refactoring.Refactorings;
 
 /* 
@@ -106,6 +109,19 @@ public class DrawAllocationRefactoring extends AbstractRefactoringRule {
 			this.ctx=ctx;
 			this.onDrawDeclaration = onDrawDeclaration;
 		}
+		
+		//recheck this -- getSupercLass is not working properly
+		public boolean isMethodBindingSubclassOf(ITypeBinding typeBinding, String superClassString){
+			ITypeBinding superClass = typeBinding;
+			while(superClass!= null && !superClass.equals(ctx.getAST().resolveWellKnownType("java.lang.Object"))){
+				if(superClass.getName().equals(superClassString)){
+					return true;
+				}
+				superClass = typeBinding.getSuperclass();
+			}
+			return false;
+		}
+		
 		@Override
 		public boolean visit(VariableDeclarationFragment node) {
 			
@@ -118,12 +134,25 @@ public class DrawAllocationRefactoring extends AbstractRefactoringRule {
 					initializer = ((CastExpression)initializer).getExpression();
 				}
 				if(initializer.getNodeType() == ASTNode.CLASS_INSTANCE_CREATION){
+					ClassInstanceCreation classInstanceCreation = (ClassInstanceCreation) initializer;
 					InitializerVisitor initializerVisitor = new InitializerVisitor();
 					initializer.accept(initializerVisitor);
 					if(initializerVisitor.initializerCanBeExtracted){
 						Statement declarationStatement = (Statement) ASTNodes.getParent(node, ASTNode.VARIABLE_DECLARATION_STATEMENT);
-						if(declarationStatement!= null){						
-							r.insertBefore(b.move(declarationStatement), onDrawDeclaration);						
+						if(declarationStatement!= null){	
+							//Deal with collections
+							if(isMethodBindingSubclassOf(node.getName().resolveTypeBinding(), "AbstractCollection")){
+								//It obnly works for allocations with empty collections
+								if(classInstanceCreation.arguments().size() == 0){
+									r.insertBefore(b.move(declarationStatement), onDrawDeclaration);
+									onDrawDeclaration.getBody().statements().add(
+										b.invoke(node.getName().getIdentifier(), "clear")
+									);
+								}
+							}
+							else{
+								r.insertBefore(b.move(declarationStatement), onDrawDeclaration);									
+							}
 						}
 					}
 				}
