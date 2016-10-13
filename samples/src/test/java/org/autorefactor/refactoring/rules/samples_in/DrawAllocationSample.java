@@ -43,6 +43,7 @@ public class DrawAllocationSample extends Button {
         boolean b = Boolean.valueOf(true); // auto-boxing
 
         Integer i2 = new Integer(i);
+        Integer i3 = (Integer) new Integer(2);
         
         // Non-allocations
         super.animate();

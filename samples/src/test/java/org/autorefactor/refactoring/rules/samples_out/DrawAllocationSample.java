@@ -26,6 +26,8 @@ public class DrawAllocationSample extends Button {
     // This one should not be reported:
     Integer i = new Integer(5);
 
+    Integer i3 = (Integer) new Integer(2);
+
     @Override
     protected void onDraw(android.graphics.Canvas canvas) {
         super.onDraw(canvas);
@@ -43,7 +45,6 @@ public class DrawAllocationSample extends Button {
         boolean b = Boolean.valueOf(true); // auto-boxing
 
         Integer i2 = new Integer(i);
-        
         // Non-allocations
         super.animate();
         int x = 4 + '5';

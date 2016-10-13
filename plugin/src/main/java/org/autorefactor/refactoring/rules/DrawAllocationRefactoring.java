@@ -27,10 +27,12 @@
  */
 package org.autorefactor.refactoring.rules;
 
+import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.Assignment;
 import org.eclipse.jdt.core.dom.Block;
+import org.eclipse.jdt.core.dom.CastExpression;
 import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.ExpressionStatement;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
@@ -112,6 +114,9 @@ public class DrawAllocationRefactoring extends AbstractRefactoringRule {
 			
 			Expression initializer = node.getInitializer();
 			if(initializer != null){
+				if(initializer.getNodeType() == ASTNode.CAST_EXPRESSION){
+					initializer = ((CastExpression)initializer).getExpression();
+				}
 				if(initializer.getNodeType() == ASTNode.CLASS_INSTANCE_CREATION){
 					InitializerVisitor initializerVisitor = new InitializerVisitor();
 					initializer.accept(initializerVisitor);
