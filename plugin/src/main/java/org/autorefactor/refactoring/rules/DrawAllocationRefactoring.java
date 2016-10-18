@@ -57,6 +57,8 @@ import org.eclipse.jdt.internal.corext.dom.ASTNodes;
 import static org.autorefactor.refactoring.ASTHelper.*;
 import static org.eclipse.jdt.core.dom.ASTNode.*;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -111,13 +113,18 @@ public class DrawAllocationRefactoring extends AbstractRefactoringRule {
 		}
 		
 		//recheck this -- getSupercLass is not working properly
-		public boolean isMethodBindingSubclassOf(ITypeBinding typeBinding, String superClassString){
+		public boolean isMethodBindingSubclassOf(ITypeBinding typeBinding, List<String> superClassStrings){
 			ITypeBinding superClass = typeBinding;
 			while(superClass!= null && !superClass.equals(ctx.getAST().resolveWellKnownType("java.lang.Object"))){
-				if(superClass.getName().equals(superClassString)){
+				String className = superClass.getName();
+				if(className.contains("<")){
+					className = className.split("<",2)[0];
+				}
+				if(superClassStrings.contains(className)){
+//				if(superClass.getName().equals(superClassString)){
 					return true;
 				}
-				superClass = typeBinding.getSuperclass();
+				superClass = superClass.getSuperclass();
 			}
 			return false;
 		}
@@ -139,15 +146,25 @@ public class DrawAllocationRefactoring extends AbstractRefactoringRule {
 					initializer.accept(initializerVisitor);
 					if(initializerVisitor.initializerCanBeExtracted){
 						Statement declarationStatement = (Statement) ASTNodes.getParent(node, ASTNode.VARIABLE_DECLARATION_STATEMENT);
-						if(declarationStatement!= null){	
+						if(declarationStatement!= null){
+							boolean test = isMethodBindingSubclassOf(node.getName().resolveTypeBinding(), Arrays.asList("AbstractCollection", "AbstractMap", "Map"));
 							//Deal with collections
-							if(isMethodBindingSubclassOf(node.getName().resolveTypeBinding(), "AbstractCollection")){
-								//It obnly works for allocations with empty collections
+							if(
+								isMethodBindingSubclassOf(
+									node.getName().resolveTypeBinding(),
+									Arrays.asList("AbstractCollection", "Collection", "AbstractMap", "Map")
+								)
+							){
+								//It should only works with allocations of empty collections.
+								// Approximation: work only for 0 args
 								if(classInstanceCreation.arguments().size() == 0){
+									//allocate object outside onDraw
 									r.insertBefore(b.move(declarationStatement), onDrawDeclaration);
-									onDrawDeclaration.getBody().statements().add(
+									// call collection.clear() in the end of onDraw
+									ASTNode clearNode = b.getAST().newExpressionStatement(
 										b.invoke(node.getName().getIdentifier(), "clear")
 									);
+									r.insertAt(clearNode, onDrawDeclaration.getBody().statements().size(), Block.STATEMENTS_PROPERTY, onDrawDeclaration.getBody());
 								}
 							}
 							else{
