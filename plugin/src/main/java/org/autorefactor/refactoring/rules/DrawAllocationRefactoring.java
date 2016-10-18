@@ -66,11 +66,7 @@ import org.autorefactor.refactoring.ASTBuilder;
 import org.autorefactor.refactoring.ASTHelper;
 import org.autorefactor.refactoring.Refactorings;
 
-/* 
- * TODO when findViewById is reusing a local variable,
- * the viewholderitem will create a new field with duplicate name.
- * Possible solution: use the id names instead of var names
- */
+
 
 /** See {@link #getDescription()} method. */
 public class DrawAllocationRefactoring extends AbstractRefactoringRule {
@@ -147,12 +143,11 @@ public class DrawAllocationRefactoring extends AbstractRefactoringRule {
 					if(initializerVisitor.initializerCanBeExtracted){
 						Statement declarationStatement = (Statement) ASTNodes.getParent(node, ASTNode.VARIABLE_DECLARATION_STATEMENT);
 						if(declarationStatement!= null){
-							boolean test = isMethodBindingSubclassOf(node.getName().resolveTypeBinding(), Arrays.asList("AbstractCollection", "AbstractMap", "Map"));
 							//Deal with collections
 							if(
 								isMethodBindingSubclassOf(
 									node.getName().resolveTypeBinding(),
-									Arrays.asList("AbstractCollection", "Collection", "AbstractMap", "Map")
+									Arrays.asList("AbstractCollection", "Collection","List", "AbstractMap", "Map")
 								)
 							){
 								//It should only works with allocations of empty collections.
@@ -164,7 +159,13 @@ public class DrawAllocationRefactoring extends AbstractRefactoringRule {
 									ASTNode clearNode = b.getAST().newExpressionStatement(
 										b.invoke(node.getName().getIdentifier(), "clear")
 									);
-									r.insertAt(clearNode, onDrawDeclaration.getBody().statements().size(), Block.STATEMENTS_PROPERTY, onDrawDeclaration.getBody());
+									List bodyStatements = onDrawDeclaration.getBody().statements();
+									Statement lastStatement = (Statement) bodyStatements.get(bodyStatements.size() - 1);
+									int whereToInsertClearStatement = bodyStatements.size();
+									if(ASTNode.RETURN_STATEMENT == lastStatement.getNodeType()){
+										whereToInsertClearStatement -= 1;
+									}
+									r.insertAt(clearNode, whereToInsertClearStatement, Block.STATEMENTS_PROPERTY, onDrawDeclaration.getBody());
 								}
 							}
 							else{

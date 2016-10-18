@@ -1,6 +1,8 @@
 package org.autorefactor.refactoring.rules.samples_out;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import android.annotation.SuppressLint;
@@ -73,5 +75,19 @@ public class DrawAllocationSample extends Button {
         // This one should not be reported:
         @SuppressLint("UseSparseArrays")
         Map<Integer, Object> myOtherMap = new HashMap<Integer, Object>();
+    }
+    
+    public class DrawAllocationSampleTwo extends Button {
+		public DrawAllocationSampleTwo(Context context) {
+			super(context);
+			// TODO Auto-generated constructor stub
+		}
+		List<Integer> array = new ArrayList<Integer>();
+	    @Override
+	    protected void onDraw(android.graphics.Canvas canvas) {
+	        super.onDraw(canvas);
+	        array.clear();
+	        return;
+	    }
     }
 }
