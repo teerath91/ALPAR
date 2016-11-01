@@ -57,10 +57,6 @@ public class RefactoringRulesTest {
 
     /** If not empty, then only run the refactorings present in this collection. */
     private static final Collection<Class<?>> WHITELIST = Arrays.<Class<?>> asList(
-    		// WakeLockRefactoring.class,
-    		// RecycleRefactoring.class,
-    		ViewHolderRefactoring.class,
-    		DrawAllocationRefactoring.class
     );
     /** When {@link #WHITELIST} is empty, the refactorings present in this collection will never be run. */
     private static final Collection<Class<?>> BLACKLIST = Arrays.<Class<?>> asList(
