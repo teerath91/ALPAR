@@ -115,6 +115,7 @@ public final class AllRefactoringRules {
                 new AndroidDrawAllocationRefactoring(),
                 new AndroidWakeLockRefactoring(),
                 new AndroidViewHolderRefactoring(),
+                new AndroidRecycleRefactoring(),
                 new SwitchRefactoring());
     }
 
