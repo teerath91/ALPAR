@@ -35,6 +35,8 @@ import org.autorefactor.util.UnhandledException;
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
+import org.eclipse.core.internal.resources.File;
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jdt.core.ICompilationUnit;
@@ -114,8 +116,19 @@ public class AutoRefactorHandler extends AbstractHandler {
                 if (hasNature(project, JavaCore.NATURE_ID)) {
                     results.add(JavaCore.create(project));
                 }
+            } else if (el instanceof IFile) {
+                final IFile file = (IFile) el;
+                showMessage(shell, "Okay "+file.getName());
+                IJavaElement element = JavaCore.create(file); 
+                if (element instanceof ICompilationUnit) {
+                    results.add(element);
+                }
+                else {
+                    wrongSelection = true;
+                }
             } else {
                 wrongSelection = true;
+                showMessage(shell, "Deu merda "+el.getClass().getName());
             }
         }
         if (wrongSelection) {

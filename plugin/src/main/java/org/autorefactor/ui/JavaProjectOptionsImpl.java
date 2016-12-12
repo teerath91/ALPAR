@@ -50,7 +50,8 @@ public class JavaProjectOptionsImpl implements JavaProjectOptions {
     /**
      * Builds a new instance of this class with the supplied options.
      *
-     * @param options the java project options
+     * @param options
+     *            the java project options
      */
     public JavaProjectOptionsImpl(Map<String, String> options) {
         this.options = options;
@@ -101,7 +102,8 @@ public class JavaProjectOptionsImpl implements JavaProjectOptions {
     /**
      * Sets the Java SE release.
      *
-     * @param javaSERelease the Java SE release
+     * @param javaSERelease
+     *            the Java SE release
      */
     public void setJavaSERelease(Release javaSERelease) {
         this.javaSERelease = javaSERelease;
@@ -110,7 +112,8 @@ public class JavaProjectOptionsImpl implements JavaProjectOptions {
     /**
      * Sets the tabulation size.
      *
-     * @param tabSize the tabulation Size to set
+     * @param tabSize
+     *            the tabulation Size to set
      */
     public void setTabSize(int tabSize) {
         options.put(FORMATTER_INDENTATION_SIZE, String.valueOf(tabSize));
