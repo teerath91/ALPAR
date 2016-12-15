@@ -25,27 +25,47 @@
  */
 package org.autorefactor.ui;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
+import org.autorefactor.refactoring.JavaProjectOptions;
+import org.autorefactor.refactoring.RefactoringRule;
+import org.autorefactor.refactoring.Release;
+import org.autorefactor.refactoring.rules.AggregateASTVisitor;
 import org.autorefactor.refactoring.rules.AllRefactoringRules;
+import org.autorefactor.refactoring.rules.AndroidDrawAllocationRefactoring;
+import org.autorefactor.refactoring.rules.AndroidRecycleRefactoring;
+import org.autorefactor.refactoring.rules.AndroidViewHolderRefactoring;
+import org.autorefactor.refactoring.rules.AndroidWakeLockRefactoring;
+import org.autorefactor.ui.JavaCoreHelper; // fixme
 import org.autorefactor.util.UnhandledException;
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
-import org.eclipse.core.internal.resources.File;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.IPackageFragment;
 import org.eclipse.jdt.core.IPackageFragmentRoot;
 import org.eclipse.jdt.core.JavaCore;
+import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.ui.JavaUI;
+import org.eclipse.jface.text.Document;
+import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
@@ -100,9 +120,22 @@ public class AutoRefactorHandler extends AbstractHandler {
         }
     }
 
+    private static void getAllFilesRecursive(IFolder folder, List<IFile> acum) throws CoreException{
+        for(IResource member: folder.members()){
+            if (member instanceof IFile){
+                acum.add((IFile) member);
+            }
+            else if (member instanceof IFolder){
+                getAllFilesRecursive((IFolder) member, acum);
+            }
+        }
+    }
+    
     private static List<IJavaElement> getSelectedJavaElements(Shell shell,  IStructuredSelection selection) {
         boolean wrongSelection = false;
         final List<IJavaElement> results = new ArrayList<IJavaElement>();
+        final List<IFile> genericFileResults = new ArrayList<IFile>();
+        
         final Iterator<?> it = selection.iterator();
         while (it.hasNext()) {
             final Object el = it.next();
@@ -118,22 +151,79 @@ public class AutoRefactorHandler extends AbstractHandler {
                 }
             } else if (el instanceof IFile) {
                 final IFile file = (IFile) el;
-                showMessage(shell, "Okay "+file.getName());
-                IJavaElement element = JavaCore.create(file); 
-                if (element instanceof ICompilationUnit) {
-                    results.add(element);
-                }
-                else {
-                    wrongSelection = true;
+                genericFileResults.add(file);
+            } else if (el instanceof IFolder) {
+                final IFolder folder = (IFolder) el;
+                try {
+                    getAllFilesRecursive(folder, genericFileResults);
+                } catch (CoreException e) {
+                    showMessage(shell, "Not okay :("+folder.getName());
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
                 }
             } else {
                 wrongSelection = true;
-                showMessage(shell, "Deu merda "+el.getClass().getName());
             }
         }
         if (wrongSelection) {
             showMessage(shell, "Please select a Java source file, Java package or Java project");
         }
+        
+        
+        /* Take care of the hack */
+        
+        for(IFile file: genericFileResults){
+            IJavaElement element = JavaCore.create(file);
+            if (element instanceof ICompilationUnit) {
+                ICompilationUnit comp_unit = (ICompilationUnit) element;
+//                results.add(comp_unit);
+                
+                try {
+                    ICompilationUnit working_copy = comp_unit.getWorkingCopy(null);
+                    List<RefactoringRule> refactoringsList = Arrays.asList(new RefactoringRule[]{
+                            new AndroidDrawAllocationRefactoring(),
+                            new AndroidWakeLockRefactoring(),
+                            new AndroidViewHolderRefactoring(),
+                            new AndroidRecycleRefactoring()});
+                    String package_name = working_copy.getPackageDeclarations()[0].getElementName();
+                    String sampleInSource = working_copy.getSource();
+                    final IPackageFragment packageFragment = JavaCoreHelper.getPackageFragment(package_name);
+                    final ICompilationUnit cu = packageFragment.createCompilationUnit(
+                            file.getName(), sampleInSource, true, null);
+                    cu.getBuffer().setContents(sampleInSource);
+                    cu.save(null, true);
+
+                    final IDocument doc = new Document(sampleInSource);
+                    
+                    JavaProjectOptions projectOptions = new JavaProjectOptionsImpl(cu.getJavaProject().getOptions(true));
+                    new ApplyRefactoringsJob(null, null).applyRefactoring(
+                            doc, cu,
+                            new AggregateASTVisitor(refactoringsList),
+                            projectOptions,
+                            new NullProgressMonitor());
+                    String newContent = doc.get();
+                    InputStream inputStream = new ByteArrayInputStream( newContent.getBytes());
+                    file.setContents(inputStream, true, true, null);
+                    //ToDo Remove Project
+                    
+                    
+                } catch (JavaModelException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                } catch (Exception e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+                
+            }
+            showMessage(shell, "Done! "+genericFileResults.size()+" processed.");
+        }
+        
+        
+        
+        
+        
+        
         return results;
     }
 
