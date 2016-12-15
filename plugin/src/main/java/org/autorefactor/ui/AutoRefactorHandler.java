@@ -50,6 +50,7 @@ import org.autorefactor.util.UnhandledException;
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
+import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
@@ -120,14 +121,19 @@ public class AutoRefactorHandler extends AbstractHandler {
         }
     }
 
-    private static void getAllFilesRecursive(IFolder folder, List<IFile> acum) throws CoreException{
-        for(IResource member: folder.members()){
-            if (member instanceof IFile){
-                acum.add((IFile) member);
+    private static void getAllFilesRecursive(IContainer filesContainer, List<IFile> acum){
+        try {
+            for(IResource member: filesContainer.members()){
+                if (member instanceof IFile){
+                    acum.add((IFile) member);
+                }
+                else if (member instanceof IContainer){
+                    getAllFilesRecursive((IContainer) member, acum);
+                }
             }
-            else if (member instanceof IFolder){
-                getAllFilesRecursive((IFolder) member, acum);
-            }
+        } catch (CoreException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
         }
     }
     
@@ -149,18 +155,15 @@ public class AutoRefactorHandler extends AbstractHandler {
                 if (hasNature(project, JavaCore.NATURE_ID)) {
                     results.add(JavaCore.create(project));
                 }
+                else{
+                    getAllFilesRecursive(project, genericFileResults);
+                }
             } else if (el instanceof IFile) {
                 final IFile file = (IFile) el;
                 genericFileResults.add(file);
             } else if (el instanceof IFolder) {
                 final IFolder folder = (IFolder) el;
-                try {
-                    getAllFilesRecursive(folder, genericFileResults);
-                } catch (CoreException e) {
-                    showMessage(shell, "Not okay :("+folder.getName());
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
+                getAllFilesRecursive(folder, genericFileResults);
             } else {
                 wrongSelection = true;
             }
@@ -216,9 +219,9 @@ public class AutoRefactorHandler extends AbstractHandler {
                 }
                 
             }
-            showMessage(shell, "Done! "+genericFileResults.size()+" processed.");
         }
-        
+        showMessage(shell, "Done! "+genericFileResults.size()+" processed.");
+
         
         
         
