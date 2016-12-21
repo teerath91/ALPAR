@@ -29,23 +29,29 @@ import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.Assignment;
 import org.eclipse.jdt.core.dom.Block;
-import org.eclipse.jdt.core.dom.ExpressionStatement;
+import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
+import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
+import org.eclipse.jdt.core.dom.ReturnStatement;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.TryStatement;
 import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
+
 import static org.autorefactor.refactoring.ASTHelper.*;
+import static org.eclipse.jdt.core.dom.InfixExpression.Operator.NOT_EQUALS;
+
+import java.util.ArrayList;
+
 import org.autorefactor.refactoring.ASTBuilder;
 import org.autorefactor.refactoring.Refactorings;
+import org.autorefactor.refactoring.TypeNameDecider;
 
 /*
- * TODO when the last use of resource is as arg of a method invocation,
- * it should be assumed that the given method will take care of the release.
- * TODO Track local variables. E.g., when a TypedArray a is assigned to variable b,
+ * TODO (low prioriity) Track local variables. E.g., when a TypedArray a is assigned to variable b,
  * release() should be called only in one variable.
  * TODO (low priority) check whether resources are being used after release.
  * TODO add support for FragmentTransaction.beginTransaction(). It can use method
@@ -179,6 +185,7 @@ public class AndroidRecycleRefactoring extends AbstractRefactoringRule {
         if (recycleMethodName != null) {
             SimpleName cursorExpression;
             ASTNode variableAssignmentNode;
+            Block cursorScopeBlock;
             VariableDeclarationFragment variableDeclarationFragment = getAncestorOrNull(node,
                     VariableDeclarationFragment.class);
             if (variableDeclarationFragment != null) {
@@ -194,25 +201,60 @@ public class AndroidRecycleRefactoring extends AbstractRefactoringRule {
                         return VISIT_SUBTREE;
                     }
                 }
+                cursorScopeBlock = getAncestor(node, Block.class);
             } else {
                 Assignment variableAssignment = getAncestor(node, Assignment.class);
                 cursorExpression = (SimpleName) variableAssignment.getLeftHandSide();
                 variableAssignmentNode = variableAssignment;
+
+                // When node is not declaring a new variable, the variable might
+                // have been declared in another block. Solution: find
+                // declaration in the method
+                Block methodDeclarationBody = getAncestor(node, MethodDeclaration.class).getBody();
+                FindVariableDeclarationVisitor findVariableDeclaration = new FindVariableDeclarationVisitor(
+                        cursorExpression);
+                methodDeclarationBody.accept(findVariableDeclaration);
+                cursorScopeBlock = findVariableDeclaration.getScopeBlock();
+                if (cursorScopeBlock == null) {
+                    // bullet proof for hypothetical corner case
+                    cursorScopeBlock = getAncestor(node, Block.class);
+                }
             }
             // Check whether it has been closed
             ClosePresenceChecker closePresenceChecker = new ClosePresenceChecker(cursorExpression, recycleMethodName);
             VisitorDecorator visitor = new VisitorDecorator(variableAssignmentNode, cursorExpression,
                     closePresenceChecker);
-            Block block = getAncestor(node, Block.class);
-            block.accept(visitor);
+            cursorScopeBlock.accept(visitor);
             if (!closePresenceChecker.isClosePresent()) {
-                Statement lastCursorAccess = closePresenceChecker.getLastCursorStatementInBlock(block);
+                final ASTBuilder b = this.ctx.getASTBuilder();
+                final Refactorings r = this.ctx.getRefactorings();
+                Statement lastCursorAccess = closePresenceChecker.getLastCursorStatementInBlock(cursorScopeBlock);
+                if (closePresenceChecker.returns.size() > 0) {
+                    closePresenceChecker.returns.size();
+                }
+
+                for (ClosePresenceChecker.ReturnStatementExtra returnInfo : closePresenceChecker.returns) {
+                    ReturnStatement returnStmt = returnInfo.returnStmt;
+                    Expression returnExpr = returnStmt.getExpression();
+                    ITypeBinding returnType = returnExpr.resolveTypeBinding();
+                    if (returnType != cursorExpression.resolveTypeBinding()) {
+                        if (returnInfo.usesResource) {
+                            TypeNameDecider typeNameDecider = new TypeNameDecider(node);
+                            final String returnLocalVariableName = "returnValueAutoRefactor";
+                            Statement returnLocalVariable = b
+                                    .toStmt(b.declareExpr(b.toType(returnType, typeNameDecider),
+                                            b.simpleName(returnLocalVariableName), b.copy(returnExpr)));
+                            r.insertBefore(returnLocalVariable, returnStmt);
+                            r.replace(returnExpr, b.simpleName(returnLocalVariableName));
+                        }
+                        Statement stmt = getCloseResourceStmt(recycleMethodName, cursorExpression, b);
+                        r.insertBefore(stmt, returnStmt);
+                    }
+                }
+
                 if (lastCursorAccess.getNodeType() != ASTNode.RETURN_STATEMENT) {
-                    final ASTBuilder b = this.ctx.getASTBuilder();
-                    final Refactorings r = this.ctx.getRefactorings();
-                    MethodInvocation closeInvocation = b.invoke(b.copy(cursorExpression), recycleMethodName);
-                    ExpressionStatement expressionStatement = b.toStmt(closeInvocation);
-                    r.insertAfter(expressionStatement, lastCursorAccess);
+                    Statement stmt = getCloseResourceStmt(recycleMethodName, cursorExpression, b);
+                    r.insertAfter(stmt, lastCursorAccess);
                     return DO_NOT_VISIT_SUBTREE;
                 }
             }
@@ -220,11 +262,56 @@ public class AndroidRecycleRefactoring extends AbstractRefactoringRule {
         return VISIT_SUBTREE;
     }
 
+    private Statement getCloseResourceStmt(String recycleMethodName, SimpleName cursorExpression, final ASTBuilder b) {
+        MethodInvocation closeInvocation = b.invoke(b.copy(cursorExpression), recycleMethodName);
+        Statement stmt = b.if0(b.infixExpr(b.copy(cursorExpression), NOT_EQUALS, b.null0()),
+                b.block(b.toStmt(closeInvocation)));
+        return stmt;
+    }
+
+    private class FindVariableDeclarationVisitor extends ASTVisitor {
+
+        private SimpleName variableName;
+        private VariableDeclarationFragment variableDeclaration;
+
+        public FindVariableDeclarationVisitor(SimpleName variableName) {
+            this.variableName = variableName;
+        }
+
+        private Block getScopeBlock() {
+            if (variableDeclaration != null) {
+                return getAncestorOrNull(variableDeclaration, Block.class);
+            }
+            return null;
+        }
+
+        @Override
+        public boolean visit(VariableDeclarationFragment node) {
+            if (node.getName().getIdentifier().equals(variableName.getIdentifier())) { // FIXME
+                                                                                       // getIdentifier
+                variableDeclaration = node;
+                return DO_NOT_VISIT_SUBTREE;
+            }
+            return VISIT_SUBTREE;
+        }
+    }
+
     private class ClosePresenceChecker extends ASTVisitor {
         private boolean closePresent;
         private SimpleName lastCursorUse;
         private SimpleName cursorSimpleName;
         private String recycleMethodName;
+        private ArrayList<ReturnStatementExtra> returns = new ArrayList<ReturnStatementExtra>();
+        private ArrayList<ReturnStatementExtra> returnsAfterCloseStatement = new ArrayList<ReturnStatementExtra>();
+
+        public class ReturnStatementExtra {
+            ReturnStatement returnStmt;
+            boolean usesResource;
+
+            ReturnStatementExtra(ReturnStatement returnStmt) {
+                this.returnStmt = returnStmt;
+            }
+        }
 
         /**
          * @param cursorSimpleName Variable name of cursor
@@ -268,6 +355,14 @@ public class AndroidRecycleRefactoring extends AbstractRefactoringRule {
         public boolean visit(SimpleName node) {
             if (isSameLocalVariable(node, cursorSimpleName)) {
                 this.lastCursorUse = node;
+                returns.addAll(returnsAfterCloseStatement);
+                returnsAfterCloseStatement.clear();
+                if (!returns.isEmpty()) {
+                    ReturnStatementExtra lastReturn = returns.get(returns.size() - 1);
+                    if (getAncestorOrNull(node, ReturnStatement.class) == lastReturn.returnStmt) {
+                        lastReturn.usesResource = true;
+                    }
+                }
             }
             return VISIT_SUBTREE;
         }
@@ -277,6 +372,12 @@ public class AndroidRecycleRefactoring extends AbstractRefactoringRule {
             if (isSameLocalVariable(node.getLeftHandSide(), cursorSimpleName)) {
                 return DO_NOT_VISIT_SUBTREE;
             }
+            return VISIT_SUBTREE;
+        }
+
+        @Override
+        public boolean visit(ReturnStatement node) {
+            returnsAfterCloseStatement.add(new ReturnStatementExtra(node));
             return VISIT_SUBTREE;
         }
     }
@@ -328,6 +429,11 @@ public class AndroidRecycleRefactoring extends AbstractRefactoringRule {
 
         @Override
         public boolean visit(MethodInvocation node) {
+            return visitor.visit(node);
+        }
+
+        @Override
+        public boolean visit(ReturnStatement node) {
             return visitor.visit(node);
         }
     }

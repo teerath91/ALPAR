@@ -1,5 +1,8 @@
 package org.autorefactor.refactoring.rules.samples_in;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import android.content.ContentProvider;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
@@ -54,6 +57,15 @@ public class AndroidRecycleSample {
                 new String[]{Long.toString(5)},
                 null, null, null);
         return cursor;
+    }
+    
+    public String testResourceUsedInReturn(SQLiteDatabase db) {
+        Cursor cursor = db.query("TABLE_TRIPS",
+                new String[]{ "KEY_TRIP_ID" },
+                "ROUTE_ID" + "=?",
+                new String[]{Long.toString(5)},
+                null, null, null);
+        return cursor.getString(0);
     }
 
     public void testMultipleAssignment(Uri uri, ContentProvider provider) {
@@ -121,6 +133,74 @@ public class AndroidRecycleSample {
                     "1")) {
                 return cursor.moveToFirst();
             }
+        }
+    }
+
+    public static String testRecycleBeforeEarlyReturns(Context context, Uri uri) {
+        if ("content".equalsIgnoreCase(uri.getScheme())) {
+            String[] projection = { "_data" };
+            Cursor cursor = null;
+
+            try {
+                cursor = context.getContentResolver().query(uri, projection, null, null, null);
+                int column_index = cursor
+                .getColumnIndexOrThrow("_data");
+                if (cursor.moveToFirst()) {
+                    return cursor.getString(column_index);
+                }
+            } catch (Exception e) {
+            }
+        }
+        else if ("file".equalsIgnoreCase(uri.getScheme())) {
+            return uri.getPath();
+        }
+        return null;
+    }
+
+    public static int getCalendars(Context context, boolean onlyWritable) {
+        List<Integer> ids = new ArrayList<>();
+        List<String> names = new ArrayList<>();
+        List<String> displayNames = new ArrayList<>();
+        List<String> accountNames = new ArrayList<>();
+        ContentResolver cr = context.getContentResolver();
+
+        Cursor c = null;
+        try {
+            c = cr.query(Uri.parse("com.example.android"),
+                    new String[]{"CALENDAR_PROJECTION"}, null, null, null);
+            if (c != null) {
+                while (c.moveToNext()) {
+                    int COLUMN_CAL_ACCESS_LEVEL = 0;
+                    if (!onlyWritable || (1 == (c.getInt(COLUMN_CAL_ACCESS_LEVEL)))) {
+                        int COLUMN_CAL_ID = 0;
+                        int id = c.getInt(COLUMN_CAL_ID);
+                        int COLUMN_CAL_NAME = 0;
+                        int COLUMN_CAL_DISPLAY_NAME = 0;
+                        int COLUMN_CAL_ACCOUNT_NAME = 0;
+                        String name = c.getString(COLUMN_CAL_NAME);
+                        String displayName = c.getString(COLUMN_CAL_DISPLAY_NAME);
+                        String accountName = c.getString(COLUMN_CAL_ACCOUNT_NAME);
+
+                        ids.add(id);
+                        names.add(name);
+                        displayNames.add(displayName);
+                        accountNames.add(accountName);
+                    }
+                }
+            }
+        } catch (Exception e) {
+//            Analytics.sendException(context, e, false);
+        } finally {
+            if (c != null) c.close();
+        }
+
+        return 0;
+    }
+
+    private static class R {
+        public static class styleable {
+            public static final int WeekView_scrollDuration = 1;
+            public static final int[] WeekView = {2};
         }
     }
 
