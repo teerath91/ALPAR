@@ -139,18 +139,6 @@ public class AndroidRecycleRefactoring extends AbstractRefactoringRule {
                 "obtain")
         ) {
             return "recycle";
-        } else if (isMethodIgnoringParameters(
-                node,
-                "android.os.Handler",
-                "obtainMessage")
-        ) {
-            return "recycle";
-        } else if (isMethodIgnoringParameters(
-                node,
-                "android.os.Message",
-                "obtain")
-        ) {
-            return "recycle";
         } else if (isMethod(
                 node,
                 "android.view.MotionEvent",
@@ -183,6 +171,10 @@ public class AndroidRecycleRefactoring extends AbstractRefactoringRule {
     public boolean visit(MethodInvocation node) {
         String recycleMethodName = methodNameToCleanupResource(node);
         if (recycleMethodName != null) {
+            MethodDeclaration methodDeclaration = getAncestor(node, MethodDeclaration.class);
+            if (methodDeclaration.getReturnType2().resolveBinding().equals(node.resolveTypeBinding())) {
+                return VISIT_SUBTREE;
+            }
             SimpleName cursorExpression;
             ASTNode variableAssignmentNode;
             Block cursorScopeBlock;
@@ -210,7 +202,7 @@ public class AndroidRecycleRefactoring extends AbstractRefactoringRule {
                 // When node is not declaring a new variable, the variable might
                 // have been declared in another block. Solution: find
                 // declaration in the method
-                Block methodDeclarationBody = getAncestor(node, MethodDeclaration.class).getBody();
+                Block methodDeclarationBody = methodDeclaration.getBody();
                 FindVariableDeclarationVisitor findVariableDeclaration = new FindVariableDeclarationVisitor(
                         cursorExpression);
                 methodDeclarationBody.accept(findVariableDeclaration);
