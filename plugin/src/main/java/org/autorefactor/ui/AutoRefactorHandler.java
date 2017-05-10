@@ -184,10 +184,11 @@ public class AutoRefactorHandler extends AbstractHandler {
                 try {
                     ICompilationUnit working_copy = comp_unit.getWorkingCopy(null);
                     List<RefactoringRule> refactoringsList = Arrays.asList(new RefactoringRule[]{
-                            new AndroidDrawAllocationRefactoring(),
-                            new AndroidWakeLockRefactoring(),
+//                            new AndroidDrawAllocationRefactoring(),
+//                            new AndroidWakeLockRefactoring(),
                             new AndroidViewHolderRefactoring(),
-                            new AndroidRecycleRefactoring()});
+//                            new AndroidRecycleRefactoring(),
+                            });
                     String package_name = working_copy.getPackageDeclarations()[0].getElementName();
                     String sampleInSource = working_copy.getSource();
                     final IPackageFragment packageFragment = JavaCoreHelper.getPackageFragment(package_name);
@@ -208,8 +209,7 @@ public class AutoRefactorHandler extends AbstractHandler {
                     InputStream inputStream = new ByteArrayInputStream( newContent.getBytes());
                     file.setContents(inputStream, true, true, null);
                     //ToDo Remove Project
-                    
-                    
+                    cu.delete(true, null);
                 } catch (JavaModelException e) {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
