@@ -85,7 +85,7 @@ public class Refactorings {
      * @return the AST
      */
     public AST getAST() {
-        return rewrite.getAST();
+        return getRewrite().getAST();
     }
 
     /**
@@ -119,7 +119,7 @@ public class Refactorings {
      */
     @SuppressWarnings("unchecked")
     public <T extends ASTNode> T createCopyTarget(T node) {
-        return (T) rewrite.createCopyTarget(node);
+        return (T) getRewrite().createCopyTarget(node);
     }
 
     /**
@@ -151,7 +151,7 @@ public class Refactorings {
         final Pair<ASTNode, ChildListPropertyDescriptor> key = Pair.of(node, listProperty);
         ListRewrite listRewrite = listRewriteCache.get(key);
         if (listRewrite == null) {
-            listRewrite = rewrite.getListRewrite(node, listProperty);
+            listRewrite = getRewrite().getListRewrite(node, listProperty);
             listRewriteCache.put(key, listRewrite);
         }
         return listRewrite;
@@ -171,7 +171,7 @@ public class Refactorings {
      */
     @SuppressWarnings("unchecked")
     public <T extends ASTNode> T createMoveTarget(T node) {
-        return (T) rewrite.createMoveTarget(node);
+        return (T) getRewrite().createMoveTarget(node);
     }
 
     /**
@@ -242,7 +242,7 @@ public class Refactorings {
      * @see ASTRewrite#replace(ASTNode, ASTNode, org.eclipse.text.edits.TextEditGroup)
      */
     public void replace(ASTNode node, ASTNode replacement) {
-        rewrite.replace(node, replacement, null);
+        getRewrite().replace(node, replacement, null);
         addRefactoredNodes(node);
     }
 
@@ -278,7 +278,7 @@ public class Refactorings {
         if (node instanceof Comment) {
             commentRewriter.remove((Comment) node);
         } else {
-            rewrite.remove(node, null);
+            getRewrite().remove(node, null);
         }
         addRefactoredNodes(node);
     }
@@ -434,7 +434,7 @@ public class Refactorings {
      * @see ASTRewrite#set(ASTNode, StructuralPropertyDescriptor, Object, org.eclipse.text.edits.TextEditGroup)
      */
     public void set(ASTNode node, StructuralPropertyDescriptor property, Object value) {
-        rewrite.set(node, property, value, null);
+        getRewrite().set(node, property, value, null);
         addRefactoredNodes(node);
     }
 
@@ -445,7 +445,7 @@ public class Refactorings {
      * @throws BadLocationException if trying to access a non existing position
      */
     public void applyTo(final IDocument document) throws BadLocationException {
-        final TextEdit edits = rewrite.rewriteAST(document, null);
+        final TextEdit edits = getRewrite().rewriteAST(document, null);
         commentRewriter.addEdits(document, edits);
         sourceRewriter.addEdits(document, edits);
         applyEditsToDocument(edits, document);

@@ -1195,5 +1195,8 @@ public class ASTBuilder {
      */
     public NullLiteral null0() {
         return ast.newNullLiteral();
+=======
+        return (Statement) this.refactorings.getRewrite().createStringPlaceholder("\n", ASTNode.EMPTY_STATEMENT);
+>>>>>>> 8e638bf378e4c4ad37ad1d199d007992e4faf7f0
     }
 }
