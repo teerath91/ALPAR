@@ -1,10 +1,10 @@
 ## Running AutoRefactor (Leafactor)
 
-**Note**: this tutorial was created for *Eclipse Neon*.
+**Note**: this tutorial was created using *Eclipse Neon*.
 
 1. Install the Plugin Development Environment (PDE) and the resources for Java Development Tools (JDT) development into your Eclipse installation:
     - Help menu > Install New Software...
-    - In the opening window: Work with: select: The Eclipse Project Updates - http://download.eclipse.org/eclipse/updates/4.5 (4.5 for Mars, 4.6 for Neon, etc.)
+    - In the opening window: Work with: select: The Eclipse Project Updates - http://download.eclipse.org/eclipse/updates/4.6 (4.5 for Mars, 4.6 for Neon, etc.)
     - Unfold Eclipse Plugin Development Tools, and select Eclipse PDE Plug-in Developer Resources and Eclipse Plug-in Development Environment
     - Unfold Eclipse Java Development Tools, and select Eclipse JDT Plug-in Developer Resources
     - Unfold Eclipse Platform SDK, and select Eclipse Platform SDK
