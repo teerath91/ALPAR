@@ -15,7 +15,7 @@
     - In the opening window: unfold Maven > Discovery, then click the Open Catalog button
     - In the opening window: type "tycho" in the Find field
     - Select "Tycho Configurator", and click the Finish button
-3. Clone project from Github (uri: https://github.com/luiscruz/autorefactor)
+3. Clone AutoRefactor from Github (uri: https://github.com/luiscruz/autorefactor) and checkout branch `android-nohacks`.
 3. Import the project using the wizard General > *Projects from Folder or Archive*.
 4. Run an instance of Eclipse with AutoRefactor:
     - Select project `org.autorefactor.plugin`
@@ -28,3 +28,4 @@
 6. Apply AutoRefactor
     - Right-click in a package or file and then click on the menu *AutoRefactor* > *Automatic Refactoring*
     - In order to check what has changed, I usually use `git status` (assuming you are using git in your project). Alternatively you can run AutoRefactor file by file.
+
