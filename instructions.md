@@ -26,6 +26,6 @@
     - (this might be tricky since Eclipse is not able to run some Android apps)
     - Make sure you can build your app with Eclipse. (If not, there is a hack to do it, although it is not trivial.)
 6. Apply AutoRefactor
-    - Right-click in a package or file and then click on the menu *AutoRefactor* > *Automatic Refactoring*
+    - Right-click in a package or file and then click on the menu *AutoRefactor* > *Automatic Refactoring*. You'll see a progress bar in the bottom right corner of Eclipse window.
     - In order to check what has changed, I usually use `git status` (assuming you are using git in your project). Alternatively you can run AutoRefactor file by file.
 
