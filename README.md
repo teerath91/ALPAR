@@ -9,15 +9,17 @@ ALPAR (Android Lint Performance issues Auto Resolver), is an Eclipse plugin used
 
 Download and unzip the project repository (or directory clone it from the command line).
 
-(1) open the Eclipse IDE.
+(i) open the Eclipse IDE.
 
-(2) go to tab File--> Import-->Maven-->Existing Maven Project-->Next.
+(ii) go to tab File--> Import-->Maven-->Existing Maven Project-->Next.
 
-(3) a new window will open, then kindly select Browse and provide the path of Directory of AutoRefactor plugin and click Finish.
+(iii) a new window will open, then kindly select Browse and provide the path of Directory of AutoRefactor plugin and click Finish.
 
-(4) then from Package Explorer, right click on org.autorefactor.plugin and select  Run as-->Eclipse Application.
+(iv) then from Package Explorer, right click on org.autorefactor.plugin and select  Run as-->Eclipse Application.
 
 A new window will open then provide the project as input (to test). Right click on project or any java file of project select Autorefactor-->choose refactoring
+
+Select the refactoring, which is required to apply on the input file or project.
 
 # About AutoRefactor
 
