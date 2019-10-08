@@ -1,7 +1,25 @@
-[![Build Status](https://travis-ci.org/JnRouvignac/AutoRefactor.png)](https://travis-ci.org/JnRouvignac/AutoRefactor)
-[![Join the chat at https://gitter.im/JnRouvignac/AutoRefactor](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/JnRouvignac/AutoRefactor?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-# AutoRefactor
+
+# ALPAR
+
+ALPAR, is an Eclipse plugin used to automatically refactor performance issues of Android Lint. It is extended from AutoRefactor [http://autorefactor.org](http://autorefactor.org): and LeaFactor.
+
+# How to run:
+
+
+Download and unzip the project repository (or directory clone it from the command line).
+
+(1) open the Eclipse IDE.
+
+(2) go to tab File--> Import-->Maven-->Existing Maven Project-->Next.
+
+(3) a new window will open, then kindly select Browse and provide the path of Directory of AutoRefactor plugin and click Finish.
+
+(4) then from Package Explorer, right click on org.autorefactor.plugin and select  Run as-->Eclipse Application.
+
+A new window will open then provide the project as input (to test). Right click on project or any java file of project select Autorefactor-->choose refactoring
+
+# About AutoRefactor
 
 The AutoRefactor project delivers free software that automatically refactor code bases.
 
