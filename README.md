@@ -2,7 +2,7 @@
 
 # ALPAR
 
-ALPAR, is an Eclipse plugin used to automatically refactor performance issues of Android Lint. It is extended from AutoRefactor [http://autorefactor.org](http://autorefactor.org): and LeaFactor.
+ALPAR (Android Lint Performance issues Auto Resolver), is an Eclipse plugin used to automatically refactor performance issues of Android Lint. It is extended from AutoRefactor [http://autorefactor.org](http://autorefactor.org): and LeaFactor.
 
 # How to run:
 
